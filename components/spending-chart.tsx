@@ -1,16 +1,17 @@
 "use client"
 
 import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts"
-import { PieChart as PieIcon } from "lucide-react"
-import { COLORS, formatUAH, getCategoryEmoji } from "@/lib/finance"
+import { ChartPie as PieIcon } from "lucide-react"
+import { CATEGORIES, COLORS, formatUAH, getCategoryEmoji } from "@/lib/finance"
 
 type ChartDatum = { name: string; value: number }
 
 type Props = {
   data: ChartDatum[]
+  totalExpense: number
 }
 
-export function SpendingChart({ data }: Props) {
+export function SpendingChart({ data, totalExpense }: Props) {
   const hasData = data.length > 0
 
   return (
@@ -43,20 +44,37 @@ export function SpendingChart({ data }: Props) {
             </ResponsiveContainer>
           </div>
           <ul className="mt-4 space-y-3">
-            {data.map((d, i) => (
-              <li key={d.name} className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-3 text-slate-200">
-                  <span
-                    className="inline-block h-2.5 w-2.5 rounded-full"
-                    style={{ backgroundColor: COLORS[i % COLORS.length] }}
-                    aria-hidden="true"
-                  />
-                  <span aria-hidden="true">{getCategoryEmoji("expense", d.name)}</span>
-                  <span>{d.name}</span>
-                </span>
-                <span className="font-medium text-slate-300">{formatUAH(d.value)}</span>
-              </li>
-            ))}
+            {data.map((d, i) => {
+              const pct = totalExpense > 0 ? (d.value / totalExpense) * 100 : 0
+              const catInfo = CATEGORIES.expense.find((c) => c.name === d.name)
+              const barColor = catInfo?.color ?? COLORS[i % COLORS.length]
+              return (
+                <li key={d.name} className="space-y-1.5">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-2 text-slate-200">
+                      <span
+                        className="inline-block h-2.5 w-2.5 rounded-full"
+                        style={{ backgroundColor: barColor }}
+                        aria-hidden="true"
+                      />
+                      <span aria-hidden="true">{getCategoryEmoji("expense", d.name)}</span>
+                      <span>{d.name}</span>
+                    </span>
+                    <span className="font-medium text-slate-300">
+                      {formatUAH(d.value)}
+                      <span className="ml-1.5 text-[11px] text-slate-500">{Math.round(pct)}%</span>
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800/80">
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{ width: `${pct}%`, backgroundColor: barColor }}
+                      aria-hidden="true"
+                    />
+                  </div>
+                </li>
+              )
+            })}
           </ul>
         </>
       ) : (

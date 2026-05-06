@@ -10,6 +10,14 @@ export function BalanceCard({ plan, totalExpense }: Props) {
   const remaining = plan - totalExpense
   const spentPct = plan > 0 ? Math.min(100, (totalExpense / plan) * 100) : 0
 
+  // Budget health colors
+  const healthColor =
+    spentPct >= 90
+      ? { text: "text-rose-400", bar: "from-rose-500 to-rose-600", glow: "shadow-rose-500/50", icon: "ring-rose-400/20 bg-rose-400/20 text-rose-400" }
+      : spentPct >= 60
+      ? { text: "text-amber-400", bar: "from-amber-500 to-amber-600", glow: "shadow-amber-500/50", icon: "ring-amber-400/20 bg-amber-400/20 text-amber-400" }
+      : { text: "text-emerald-400", bar: "from-emerald-500 to-emerald-600", glow: "shadow-emerald-500/50", icon: "ring-emerald-400/20 bg-emerald-400/20 text-emerald-400" }
+
   return (
     <div className="relative overflow-hidden rounded-3xl border border-blue-500/20 bg-gradient-to-br from-blue-950 via-slate-900 to-slate-950 p-5 shadow-2xl shadow-blue-950/40">
       {/* gradient glow */}
@@ -27,12 +35,12 @@ export function BalanceCard({ plan, totalExpense }: Props) {
           <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
             Remaining
           </p>
-          <h2 className="mt-2 bg-gradient-to-r from-white to-slate-300 bg-clip-text text-4xl font-extrabold tracking-tight text-transparent text-balance">
+          <h2 className={`mt-2 text-4xl font-extrabold tracking-tight text-balance ${healthColor.text}`}>
             {formatUAH(remaining)}
           </h2>
           <p className="mt-1 text-xs text-slate-400">From planned income</p>
         </div>
-        <div className="rounded-xl bg-gradient-to-br from-amber-400/20 to-amber-500/5 p-2 text-amber-400 ring-1 ring-amber-400/20">
+        <div className={`rounded-xl p-2 ring-1 ${healthColor.icon}`}>
           <Wallet className="h-5 w-5" aria-hidden="true" />
         </div>
       </div>
@@ -46,7 +54,7 @@ export function BalanceCard({ plan, totalExpense }: Props) {
         </div>
         <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-800/80">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-blue-500 via-cyan-400 to-emerald-400 shadow-[0_0_12px_rgba(59,130,246,0.6)] transition-all"
+            className={`h-full rounded-full bg-gradient-to-r ${healthColor.bar} shadow-[0_0_12px_var(--tw-shadow-color)] transition-all ${healthColor.glow}`}
             style={{ width: `${spentPct}%` }}
             aria-hidden="true"
           />

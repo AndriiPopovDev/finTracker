@@ -1,7 +1,8 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { ChevronLeft, ChevronRight, Trash2 } from "lucide-react"
+import { AnimatePresence, motion } from "framer-motion"
+import { ChevronLeft, ChevronRight, Plus, Trash2, X } from "lucide-react"
 import {
   CATEGORIES,
   formatPeriod,
@@ -14,7 +15,7 @@ import {
 import { FinanceHeader } from "@/components/finance-header"
 import { BalanceCard } from "@/components/balance-card"
 import { SummaryCards } from "@/components/summary-cards"
-import { PlanAndForm } from "@/components/transaction-form"
+import { TransactionForm } from "@/components/transaction-form"
 import { SpendingChart } from "@/components/spending-chart"
 import { TransactionList } from "@/components/transaction-list"
 
@@ -37,6 +38,9 @@ export function FinanceTracker() {
   const [category, setCategory] = useState<string>(CATEGORIES.expense[0].name)
   const [showHistory, setShowHistory] = useState(false)
 
+  // FAB + sheet state
+  const [sheetOpen, setSheetOpen] = useState(false)
+
   // Edit state
   const [editingId, setEditingId] = useState<number | null>(null)
 
@@ -54,7 +58,7 @@ export function FinanceTracker() {
     setHydrated(true)
   }, [monthKey, planKey])
 
-  // Persist transactions for the active month.
+  // Persist transactions
   useEffect(() => {
     if (!hydrated || typeof window === "undefined") return
     if (transactions.length === 0) {
@@ -64,7 +68,7 @@ export function FinanceTracker() {
     }
   }, [transactions, monthKey, hydrated])
 
-  // Persist plan for the active month only when it differs from the default.
+  // Persist plan
   useEffect(() => {
     if (!hydrated || typeof window === "undefined") return
     if (plan === DEFAULT_PLAN) {
@@ -102,6 +106,7 @@ export function FinanceTracker() {
     }
     setTransactions([newTx, ...transactions])
     setAmount("")
+    setSheetOpen(false)
   }
 
   const updateTransaction = () => {
@@ -117,6 +122,7 @@ export function FinanceTracker() {
     )
     setEditingId(null)
     setAmount("")
+    setSheetOpen(false)
   }
 
   const cancelEdit = () => {
@@ -124,6 +130,7 @@ export function FinanceTracker() {
     setAmount("")
     setIsIncome(false)
     setCategory(CATEGORIES.expense[0].name)
+    setSheetOpen(false)
   }
 
   const startEdit = (tx: Transaction) => {
@@ -131,6 +138,7 @@ export function FinanceTracker() {
     setAmount(String(tx.amount))
     setIsIncome(tx.type === "income")
     setCategory(tx.category)
+    setSheetOpen(true)
   }
 
   const deleteTransaction = (id: number) => {
@@ -143,6 +151,14 @@ export function FinanceTracker() {
     next.setDate(1)
     next.setMonth(next.getMonth() + offset)
     setDate(next)
+  }
+
+  const openSheetForNew = () => {
+    setEditingId(null)
+    setAmount("")
+    setIsIncome(false)
+    setCategory(CATEGORIES.expense[0].name)
+    setSheetOpen(true)
   }
 
   return (
@@ -161,7 +177,7 @@ export function FinanceTracker() {
         className="pointer-events-none absolute bottom-0 -right-32 h-80 w-80 rounded-full bg-rose-600/10 blur-3xl"
       />
 
-      <div className="relative mx-auto w-full max-w-md px-4 pb-16 pt-3 space-y-5">
+      <div className="relative mx-auto w-full max-w-md px-4 pb-24 pt-3 space-y-5">
         <FinanceHeader
           periodLabel={periodLabel}
           currentDate={date}
@@ -179,22 +195,23 @@ export function FinanceTracker() {
           }}
         />
 
-        {/* Period nav */}
-        <div className="flex items-center justify-between text-slate-500">
+        {/* Compact date nav — merged into one line */}
+        <div className="flex items-center justify-center gap-4">
           <button
             type="button"
             onClick={() => goToMonth(-1)}
             aria-label="Previous month"
-            className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+            className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
           >
             <ChevronLeft className="h-4 w-4" aria-hidden="true" />
             Prev
           </button>
+          <span className="whitespace-nowrap text-sm font-bold text-slate-200">{periodLabel}</span>
           <button
             type="button"
             onClick={() => goToMonth(1)}
             aria-label="Next month"
-            className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+            className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
           >
             Next
             <ChevronRight className="h-4 w-4" aria-hidden="true" />
@@ -205,22 +222,7 @@ export function FinanceTracker() {
 
         <SummaryCards totalIncome={totalIncome} totalExpense={totalExpense} />
 
-        <PlanAndForm
-          isIncome={isIncome}
-          setIsIncome={setIsIncome}
-          amount={amount}
-          setAmount={setAmount}
-          category={category}
-          setCategory={setCategory}
-          onAdd={editingId !== null ? updateTransaction : addTransaction}
-          onCancelEdit={editingId !== null ? cancelEdit : undefined}
-          isEditing={editingId !== null}
-          plan={plan}
-          setPlan={setPlan}
-          totalActualIncome={totalIncome}
-        />
-
-        <SpendingChart data={chartData} />
+        <SpendingChart data={chartData} totalExpense={totalExpense} />
 
         {showHistory && <HistoryView currentMonthKey={monthKey} onSelect={setDate} />}
 
@@ -231,6 +233,68 @@ export function FinanceTracker() {
           onEdit={startEdit}
         />
       </div>
+
+      {/* FAB */}
+      <button
+        type="button"
+        onClick={openSheetForNew}
+        aria-label="Add transaction"
+        className="fixed bottom-6 right-6 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-rose-500 to-rose-700 text-white shadow-xl shadow-rose-600/50 transition-transform hover:scale-110 active:scale-95"
+      >
+        <Plus className="h-6 w-6" aria-hidden="true" />
+      </button>
+
+      {/* Bottom Sheet / Modal */}
+      <AnimatePresence>
+        {sheetOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+              onClick={cancelEdit}
+              aria-hidden="true"
+            />
+
+            {/* Sheet */}
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", stiffness: 360, damping: 32, mass: 0.8 }}
+              className="fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-md rounded-t-3xl border border-slate-700 bg-slate-950/98 p-5 shadow-2xl shadow-black/60 backdrop-blur-xl"
+            >
+              {/* Drag handle */}
+              <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-slate-700" aria-hidden="true" />
+
+              {/* Close button */}
+              <button
+                type="button"
+                onClick={cancelEdit}
+                aria-label="Close"
+                className="absolute right-4 top-4 rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+              >
+                <X className="h-5 w-5" aria-hidden="true" />
+              </button>
+
+              <TransactionForm
+                isIncome={isIncome}
+                setIsIncome={setIsIncome}
+                amount={amount}
+                setAmount={setAmount}
+                category={category}
+                setCategory={setCategory}
+                onAdd={editingId !== null ? updateTransaction : addTransaction}
+                onCancelEdit={cancelEdit}
+                isEditing={editingId !== null}
+              />
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </main>
   )
 }
