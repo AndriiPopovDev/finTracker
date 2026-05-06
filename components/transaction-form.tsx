@@ -12,8 +12,10 @@ import {
   Bus,
   Utensils,
   X,
+  Repeat,
+  type LucideIcon,
 } from "lucide-react"
-import { CATEGORIES, formatUAH } from "@/lib/finance"
+import { CATEGORIES, formatUAH, type CurrencyCode } from "@/lib/finance"
 import { CategorySelect } from "@/components/category-select"
 
 function evaluateExpression(raw: string): number | null {
@@ -51,18 +53,39 @@ function parseClipboard(text: string): { amount: number; category: string } | nu
   return { amount, category }
 }
 
-const QUICK_TEMPLATES = [
+const FALLBACK_TEMPLATES = [
   { label: "Coffee", icon: Coffee, amount: 80, category: "Restaurants" },
   { label: "Grocery", icon: ShoppingCart, amount: 500, category: "Grocery" },
   { label: "Transport", icon: Bus, amount: 30, category: "Personal" },
   { label: "Lunch", icon: Utensils, amount: 200, category: "Restaurants" },
 ] as const
 
+const TEMPLATE_ICON_MAP: Record<string, LucideIcon> = {
+  Coffee,
+  Grocery: ShoppingCart,
+  Transport: Bus,
+  Lunch: Utensils,
+}
+
+type QuickTemplate = {
+  id: string
+  label: string
+  amount: number
+  category: string
+}
+
 type Props = {
   isIncome: boolean
   setIsIncome: (v: boolean) => void
   amount: string
   setAmount: (v: string) => void
+  name: string
+  setName: (v: string) => void
+  isRecurring: boolean
+  setIsRecurring: (v: boolean) => void
+  currency: CurrencyCode
+  quickTemplates: QuickTemplate[]
+  onApplyTemplate: (template: QuickTemplate) => void
   category: string
   setCategory: (v: string) => void
   onAdd: () => void
@@ -75,6 +98,13 @@ export function TransactionForm({
   setIsIncome,
   amount,
   setAmount,
+  name,
+  setName,
+  isRecurring,
+  setIsRecurring,
+  currency,
+  quickTemplates,
+  onApplyTemplate,
   category,
   setCategory,
   onAdd,
@@ -101,8 +131,25 @@ export function TransactionForm({
   useEffect(() => {
     if (!amount) { setCalcPreview(null); return }
     const result = evaluateExpression(amount)
-    setCalcPreview(result !== null ? formatUAH(result) : null)
-  }, [amount])
+    setCalcPreview(result !== null ? formatUAH(result, undefined, currency) : null)
+  }, [amount, currency])
+
+  useEffect(() => {
+    const input = inputRef.current
+    if (!input) return
+    // Aggressive focus sequence for mobile keyboards.
+    const focusNow = () => {
+      input.focus({ preventScroll: true })
+      const end = input.value.length
+      input.setSelectionRange(end, end)
+    }
+    const rafId = window.requestAnimationFrame(focusNow)
+    const retryId = window.setTimeout(focusNow, 120)
+    return () => {
+      window.cancelAnimationFrame(rafId)
+      window.clearTimeout(retryId)
+    }
+  }, [])
 
   const resolveAndSubmit = () => {
     if (amount) {
@@ -137,24 +184,22 @@ export function TransactionForm({
     } catch { /* clipboard unavailable */ }
   }
 
-  const applyTemplate = (t: (typeof QUICK_TEMPLATES)[number]) => {
-    setAmount(String(t.amount))
-    setCategory(t.category)
-    setIsIncome(false)
-  }
+  const templatesToShow = quickTemplates.length > 0
+    ? quickTemplates.map((t) => ({ ...t, icon: TEMPLATE_ICON_MAP[t.label] ?? Coffee }))
+    : FALLBACK_TEMPLATES.map((t, idx) => ({ id: String(idx), label: t.label, amount: t.amount, category: t.category, icon: t.icon }))
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
         {isEditing ? "Edit Transaction" : "New Transaction"}
       </p>
 
       {/* Type toggle */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-2">
         <button
           type="button"
           onClick={() => { setIsIncome(false); setCategory(CATEGORIES.expense[0].name) }}
-          className={`flex items-center justify-center gap-2 rounded-xl border py-3 text-sm font-semibold transition-colors ${
+          className={`flex items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-semibold transition-colors ${
             !isIncome
               ? "border-rose-500/40 bg-rose-500/10 text-rose-400"
               : "border-slate-800 bg-slate-900/60 text-slate-400 hover:text-slate-200"
@@ -166,7 +211,7 @@ export function TransactionForm({
         <button
           type="button"
           onClick={() => { setIsIncome(true); setCategory(CATEGORIES.income[0].name) }}
-          className={`flex items-center justify-center gap-2 rounded-xl border py-3 text-sm font-semibold transition-colors ${
+          className={`flex items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-semibold transition-colors ${
             isIncome
               ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
               : "border-slate-800 bg-slate-900/60 text-slate-400 hover:text-slate-200"
@@ -177,9 +222,38 @@ export function TransactionForm({
         </button>
       </div>
 
+      {/* Name + Monthly toggle */}
+      <div className="flex items-center gap-2">
+        <label className="relative flex-1">
+          <span className="sr-only">Name</span>
+          <input
+            type="text"
+            placeholder="Name (optional)"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="h-11 w-full rounded-xl border border-slate-800 bg-slate-900/60 px-3 text-sm text-white placeholder:text-slate-500 outline-none focus:border-blue-500"
+          />
+        </label>
+        {!isEditing && (
+          <button
+            type="button"
+            onClick={() => setIsRecurring(!isRecurring)}
+            aria-pressed={isRecurring}
+            className={`flex h-11 shrink-0 items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold transition-colors ${
+              isRecurring
+                ? "border-blue-500/50 bg-blue-500/15 text-blue-300"
+                : "border-slate-800 bg-slate-900/60 text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            <Repeat className="h-3.5 w-3.5" aria-hidden="true" />
+            Monthly
+          </button>
+        )}
+      </div>
+
       {/* Amount + Category + Submit */}
-      <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
-        <label className="relative">
+      <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-2">
+        <label className="relative min-w-0">
           <span className="sr-only">Amount</span>
           <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-500">
             {isIncome
@@ -189,6 +263,7 @@ export function TransactionForm({
           </span>
           <input
             ref={inputRef}
+            autoFocus
             type="text"
             inputMode="decimal"
             placeholder="Amount..."
@@ -199,7 +274,7 @@ export function TransactionForm({
               if (e.key === "Enter") resolveAndSubmit()
               if (e.key === "Escape" && isEditing && onCancelEdit) onCancelEdit()
             }}
-            className="h-12 w-full rounded-xl border border-slate-800 bg-slate-900/60 pl-9 pr-3 text-[16px] text-white placeholder:text-slate-500 outline-none focus:border-blue-500"
+            className="h-11 w-full rounded-xl border border-slate-800 bg-slate-900/60 pl-9 pr-3 text-[15px] text-white placeholder:text-slate-500 outline-none focus:border-blue-500"
           />
           {calcPreview && (
             <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[11px] font-medium text-blue-400/80">
@@ -210,31 +285,12 @@ export function TransactionForm({
 
         <CategorySelect categories={categories} value={category} onChange={setCategory} />
 
-        {isEditing ? (
-          <div className="flex gap-1">
-            <button
-              type="button"
-              onClick={resolveAndSubmit}
-              aria-label="Update transaction"
-              className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-lg shadow-blue-600/40 transition-transform hover:scale-105 active:scale-95"
-            >
-              <Check className="h-5 w-5" aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              onClick={onCancelEdit}
-              aria-label="Cancel editing"
-              className="flex h-12 w-12 items-center justify-center rounded-xl border border-slate-700 bg-slate-900/60 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
-            >
-              <X className="h-5 w-5" aria-hidden="true" />
-            </button>
-          </div>
-        ) : (
+        {!isEditing && (
           <button
             type="button"
             onClick={resolveAndSubmit}
             aria-label="Add transaction"
-            className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-rose-500 to-rose-700 text-white shadow-lg shadow-rose-600/40 transition-transform hover:scale-105 active:scale-95"
+            className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-rose-500 to-rose-700 text-white shadow-lg shadow-rose-600/40 transition-transform hover:scale-105 active:scale-95"
           >
             <Plus className="h-5 w-5" aria-hidden="true" />
           </button>
@@ -247,8 +303,9 @@ export function TransactionForm({
           <button
             key={sym}
             type="button"
+            onMouseDown={(e) => e.preventDefault()}
             onClick={() => insertCharAtCursor(sym)}
-            className="shrink-0 h-8 w-8 rounded-lg border border-slate-700 bg-slate-900/80 text-slate-300 text-sm font-semibold transition-colors hover:border-blue-500/40 hover:bg-blue-500/10 hover:text-blue-400 active:scale-95"
+            className="h-9 w-9 shrink-0 rounded-lg border border-slate-700 bg-slate-900/80 text-sm font-semibold text-slate-300 transition-colors hover:border-blue-500/40 hover:bg-blue-500/10 hover:text-blue-400 active:scale-95"
             aria-label={`Insert ${sym}`}
           >
             {sym}
@@ -258,27 +315,27 @@ export function TransactionForm({
 
       {/* Quick Templates + Smart Paste */}
       {!isEditing && (
-        <div className="relative">
-          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1 fade-edge-r">
+        <div className="relative overflow-hidden">
+          <div className="fade-edge-r -mx-0.5 flex w-full items-center gap-1.5 overflow-x-auto whitespace-nowrap pb-0.5 pl-0.5 pr-6 scrollbar-none [touch-action:pan-x] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             <button
               type="button"
               onClick={handleSmartPaste}
               aria-label="Paste amount from clipboard"
               title="Paste from clipboard"
-              className="flex shrink-0 items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900/60 px-3 py-1.5 text-[11px] font-medium text-slate-300 transition-colors hover:border-blue-500/40 hover:bg-blue-500/10 hover:text-blue-400"
+              className="flex shrink-0 items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900/70 px-2.5 py-1 text-[11px] font-medium text-slate-300 transition-colors hover:border-blue-500/40 hover:bg-blue-500/10 hover:text-blue-400"
             >
               <ClipboardPaste className="h-3.5 w-3.5" aria-hidden="true" />
               Paste
             </button>
-            {QUICK_TEMPLATES.map((t) => {
+            {templatesToShow.map((t) => {
               const Icon = t.icon
               return (
                 <button
-                  key={t.label}
+                  key={t.id}
                   type="button"
-                  onClick={() => applyTemplate(t)}
-                  aria-label={`Quick add ${t.label}: ${t.amount} UAH`}
-                  className="flex shrink-0 items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900/60 px-3 py-1.5 text-[11px] font-medium text-slate-300 transition-colors hover:border-emerald-500/40 hover:bg-emerald-500/10 hover:text-emerald-400"
+                  onClick={() => onApplyTemplate(t)}
+                  aria-label={`Quick add ${t.label}: ${t.amount} ${currency === "UAH" ? "₴" : currency === "USD" ? "$" : "€"}`}
+                  className="flex shrink-0 items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900/70 px-2.5 py-1 text-[11px] font-medium text-slate-300 transition-colors hover:border-emerald-500/40 hover:bg-emerald-500/10 hover:text-emerald-400"
                 >
                   <Icon className="h-3.5 w-3.5" aria-hidden="true" />
                   {t.label}
@@ -289,6 +346,27 @@ export function TransactionForm({
           </div>
         </div>
       )}
+
+      {isEditing ? (
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onCancelEdit}
+            aria-label="Cancel editing"
+            className="flex h-12 w-12 items-center justify-center rounded-xl border border-slate-700 bg-slate-900/60 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+          >
+            <X className="h-5 w-5" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            onClick={resolveAndSubmit}
+            aria-label="Update transaction"
+            className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-lg shadow-blue-600/40 transition-transform hover:scale-105 active:scale-95"
+          >
+            <Check className="h-5 w-5" aria-hidden="true" />
+          </button>
+        </div>
+      ) : null}
     </div>
   )
 }

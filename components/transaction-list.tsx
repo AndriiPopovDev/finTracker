@@ -1,16 +1,17 @@
 "use client"
 
 import { CircleArrowDown as ArrowDownCircle, CircleArrowUp as ArrowUpCircle, Pencil, Trash2 } from "lucide-react"
-import { formatUAH, getCategoryEmoji, type Transaction } from "@/lib/finance"
+import { formatUAH, getCategoryEmoji, type CurrencyCode, type Transaction } from "@/lib/finance"
 
 type Props = {
   transactions: Transaction[]
   periodLabel: string
   onDelete: (id: number) => void
   onEdit: (tx: Transaction) => void
+  currency: CurrencyCode
 }
 
-export function TransactionList({ transactions, periodLabel, onDelete, onEdit }: Props) {
+export function TransactionList({ transactions, periodLabel, onDelete, onEdit, currency }: Props) {
   return (
     <div className="space-y-3">
       <h3 className="px-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
@@ -24,7 +25,8 @@ export function TransactionList({ transactions, periodLabel, onDelete, onEdit }:
       ) : (
         <ul className="space-y-2">
           {transactions.map((t) => {
-            const isIncome = t.type === "income"
+            const signedAmount = t.type === "income" ? Math.abs(t.amount) : -Math.abs(t.amount)
+            const isIncome = signedAmount > 0
             return (
               <li
                 key={t.id}
@@ -47,12 +49,15 @@ export function TransactionList({ transactions, periodLabel, onDelete, onEdit }:
 
                 <div className="min-w-0 flex-1">
                   <p
-                    className={`text-base font-bold ${
-                      isIncome ? "text-emerald-500" : "text-rose-500"
+                    className={`text-base font-medium ${
+                      signedAmount > 0 ? "text-emerald-500" : "text-rose-500"
                     }`}
                   >
-                    {formatUAH(t.amount, isIncome ? "plus" : "minus")}
+                    {formatUAH(Math.abs(t.amount), signedAmount > 0 ? "plus" : "minus", currency)}
                   </p>
+                  {t.name && (
+                    <p className="truncate text-xs font-medium text-slate-300">{t.name}</p>
+                  )}
                   <p className="truncate text-xs text-slate-400">
                     <span aria-hidden="true">{getCategoryEmoji(t.type, t.category)} </span>
                     {t.category} <span className="text-slate-600">&middot;</span> {t.date}

@@ -1,12 +1,16 @@
 import { ArrowDownCircle, ArrowUpCircle } from "lucide-react"
-import { formatUAH } from "@/lib/finance"
+import { formatUAH, type CurrencyCode } from "@/lib/finance"
 
 type Props = {
   totalIncome: number
   totalExpense: number
+  currency: CurrencyCode
 }
 
-export function SummaryCards({ totalIncome, totalExpense }: Props) {
+export function SummaryCards({ totalIncome, totalExpense, currency }: Props) {
+  const incomeValue = totalIncome
+  const expenseValue = -Math.abs(totalExpense)
+
   return (
     <div className="grid grid-cols-2 gap-3">
       <div className="relative overflow-hidden rounded-2xl border border-emerald-500/15 bg-gradient-to-br from-emerald-500/10 via-slate-900/60 to-slate-900/40 p-4 shadow-lg shadow-emerald-950/20">
@@ -20,8 +24,8 @@ export function SummaryCards({ totalIncome, totalExpense }: Props) {
             Income
           </span>
         </div>
-        <p className="relative mt-3 bg-gradient-to-r from-emerald-300 to-emerald-500 bg-clip-text text-xl font-extrabold text-transparent">
-          {formatUAH(totalIncome, "plus")}
+        <p className={`relative mt-3 text-xl font-extrabold ${incomeValue > 0 ? "text-emerald-500" : "text-rose-500"}`}>
+          {formatUAH(Math.abs(totalIncome), incomeValue > 0 ? "plus" : "minus", currency)}
         </p>
       </div>
 
@@ -36,8 +40,8 @@ export function SummaryCards({ totalIncome, totalExpense }: Props) {
             Expenses
           </span>
         </div>
-        <p className="relative mt-3 bg-gradient-to-r from-rose-300 to-rose-500 bg-clip-text text-xl font-extrabold text-transparent">
-          {totalExpense === 0 ? formatUAH(0, "minus") : formatUAH(totalExpense, "minus")}
+        <p className={`relative mt-3 text-xl font-extrabold ${expenseValue > 0 ? "text-emerald-500" : "text-rose-500"}`}>
+          {formatUAH(Math.abs(totalExpense), expenseValue > 0 ? "plus" : "minus", currency)}
         </p>
       </div>
     </div>

@@ -64,15 +64,15 @@ export function CategorySelect({ categories, value, onChange }: Props) {
   }, [])
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative min-w-0" ref={ref}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="flex h-12 w-full items-center justify-between rounded-xl border border-slate-800 bg-slate-900/60 px-3 text-sm text-white outline-none transition-colors focus:border-blue-500"
+        className="flex h-11 w-full items-center justify-between gap-2 rounded-xl border border-slate-800 bg-slate-900/60 px-2.5 text-sm text-white outline-none transition-colors focus:border-blue-500"
       >
-        <span className="flex items-center gap-2 truncate">
+        <span className="flex min-w-0 items-center gap-2">
           <span
             className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md"
             style={{
@@ -95,12 +95,12 @@ export function CategorySelect({ categories, value, onChange }: Props) {
         {open && (
           <motion.ul
             role="listbox"
-            initial={{ opacity: 0, scale: 0.92, y: 8 }}
+            initial={{ opacity: 0, scale: 0.92, y: -8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.94, y: 6 }}
+            exit={{ opacity: 0, scale: 0.94, y: -6 }}
             transition={{ type: "spring", stiffness: 380, damping: 28, mass: 0.6 }}
             style={{ transformOrigin: "bottom right" }}
-            className="absolute right-0 bottom-full z-30 mb-2 w-64 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-white/10 bg-slate-900/60 p-1.5 shadow-2xl shadow-black/40 backdrop-blur-2xl ring-1 ring-white/5"
+            className="absolute bottom-full right-0 z-[70] mb-2 w-64 max-w-[calc(100vw-2rem)] max-h-[min(250px,45dvh)] overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-slate-900/95 p-1.5 shadow-2xl shadow-black/40 backdrop-blur-2xl ring-1 ring-white/5"
           >
             {categories.map((c, i) => {
               const active = c.name === value

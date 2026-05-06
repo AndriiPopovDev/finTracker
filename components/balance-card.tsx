@@ -1,12 +1,13 @@
-import { Wallet } from "lucide-react"
-import { formatUAH } from "@/lib/finance"
+import { formatUAH, type CurrencyCode } from "@/lib/finance"
 
 type Props = {
   plan: number
   totalExpense: number
+  currency: CurrencyCode
+  onCurrencyChange: (currency: CurrencyCode) => void
 }
 
-export function BalanceCard({ plan, totalExpense }: Props) {
+export function BalanceCard({ plan, totalExpense, currency, onCurrencyChange }: Props) {
   const remaining = plan - totalExpense
   const spentPct = plan > 0 ? Math.min(100, (totalExpense / plan) * 100) : 0
 
@@ -35,13 +36,32 @@ export function BalanceCard({ plan, totalExpense }: Props) {
           <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
             Remaining
           </p>
-          <h2 className={`mt-2 text-4xl font-extrabold tracking-tight text-balance ${healthColor.text}`}>
-            {formatUAH(remaining)}
+          <h2 className={`mt-2 text-4xl font-medium tracking-tight ${healthColor.text}`}>
+            {formatUAH(remaining, undefined, currency)}
           </h2>
           <p className="mt-1 text-xs text-slate-400">From planned income</p>
         </div>
-        <div className={`rounded-xl p-2 ring-1 ${healthColor.icon}`}>
-          <Wallet className="h-5 w-5" aria-hidden="true" />
+        <div className="flex items-center gap-2">
+          {([
+            { code: "UAH", label: "₴" },
+            { code: "USD", label: "$" },
+            { code: "EUR", label: "€" },
+          ] as const).map((item) => (
+            <button
+              key={item.code}
+              type="button"
+              onClick={() => onCurrencyChange(item.code)}
+              className={`flex h-9 w-9 items-center justify-center rounded-full border text-sm font-semibold transition-all ${
+                currency === item.code
+                  ? "border-emerald-400/60 bg-emerald-500/15 text-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.22)]"
+                  : "border-slate-700 bg-slate-900/70 text-slate-400 hover:text-slate-200"
+              }`}
+              aria-label={`Switch currency to ${item.code}`}
+              aria-pressed={currency === item.code}
+            >
+              {item.label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -49,7 +69,7 @@ export function BalanceCard({ plan, totalExpense }: Props) {
         <div className="flex items-center justify-between text-[11px] text-slate-400">
           <span>Spent {Math.round(spentPct)}%</span>
           <span>
-            {formatUAH(totalExpense).replace(" UAH", "")} / {formatUAH(plan)}
+            {formatUAH(totalExpense, undefined, currency).replace(/ [₴$€]$/, "")} / {formatUAH(plan, undefined, currency)}
           </span>
         </div>
         <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-800/80">

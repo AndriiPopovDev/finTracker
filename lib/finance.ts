@@ -37,6 +37,7 @@ export const CATEGORIES: {
 export const COLORS = ["#10b981", "#3b82f6", "#8b5cf6", "#f43f5e", "#f59e0b", "#06b6d4", "#ec4899"]
 
 export type TransactionType = "income" | "expense"
+export type CurrencyCode = "UAH" | "USD" | "EUR"
 
 export type Transaction = {
   id: number
@@ -44,6 +45,8 @@ export type Transaction = {
   category: string
   type: TransactionType
   date: string
+  name?: string
+  recurringId?: string
 }
 
 export function getCategoryEmoji(type: TransactionType, name: string): string {
@@ -85,12 +88,34 @@ export function formatShortDate(date: Date) {
   return `${d}/${m}/${y}`
 }
 
-export function formatUAH(value: number, withSign?: "plus" | "minus") {
-  const formatted = value.toLocaleString(undefined, {
-    minimumFractionDigits: value % 1 === 0 ? 0 : 2,
+const CURRENCY_SYMBOL: Record<CurrencyCode, string> = {
+  UAH: "₴",
+  USD: "$",
+  EUR: "€",
+}
+
+const CURRENCY_RATE: Record<CurrencyCode, number> = {
+  UAH: 1,
+  USD: 0.025,
+  EUR: 0.023,
+}
+
+export function convertFromUAH(value: number, currency: CurrencyCode): number {
+  return value * CURRENCY_RATE[currency]
+}
+
+export function formatUAH(
+  value: number,
+  withSign?: "plus" | "minus",
+  currency: CurrencyCode = "UAH"
+) {
+  const converted = convertFromUAH(value, currency)
+  const formatted = converted.toLocaleString("uk-UA", {
+    minimumFractionDigits: converted % 1 === 0 ? 0 : 2,
     maximumFractionDigits: 2,
   })
-  if (withSign === "plus") return `+${formatted} UAH`
-  if (withSign === "minus") return `-${formatted} UAH`
-  return `${formatted} UAH`
+  const symbol = CURRENCY_SYMBOL[currency]
+  if (withSign === "plus") return `+${formatted} ${symbol}`
+  if (withSign === "minus") return `-${formatted} ${symbol}`
+  return `${formatted} ${symbol}`
 }

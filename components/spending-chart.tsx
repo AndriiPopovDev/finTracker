@@ -2,17 +2,20 @@
 
 import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts"
 import { ChartPie as PieIcon } from "lucide-react"
-import { CATEGORIES, COLORS, formatUAH, getCategoryEmoji } from "@/lib/finance"
+import { CATEGORIES, COLORS, formatUAH, getCategoryEmoji, type CurrencyCode } from "@/lib/finance"
 
 type ChartDatum = { name: string; value: number }
 
 type Props = {
   data: ChartDatum[]
   totalExpense: number
+  currency: CurrencyCode
+  forecastValue: number
 }
 
-export function SpendingChart({ data, totalExpense }: Props) {
+export function SpendingChart({ data, totalExpense, currency, forecastValue }: Props) {
   const hasData = data.length > 0
+  const forecastClass = forecastValue >= 0 ? "text-emerald-500" : "text-rose-500"
 
   return (
     <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900/80 via-slate-900/40 to-slate-950/60 p-5 shadow-xl shadow-slate-950/40">
@@ -61,7 +64,7 @@ export function SpendingChart({ data, totalExpense }: Props) {
                       <span>{d.name}</span>
                     </span>
                     <div className="flex items-baseline gap-2 text-right flex-shrink-0">
-                      <span className="font-medium text-slate-300">{formatUAH(d.value)}</span>
+                      <span className="font-medium text-slate-300">{formatUAH(d.value, undefined, currency)}</span>
                       <span className="text-[11px] text-slate-500 w-8">{Math.round(pct)}%</span>
                     </div>
                   </div>
@@ -82,6 +85,11 @@ export function SpendingChart({ data, totalExpense }: Props) {
           No expenses for this period yet.
         </p>
       )}
+      <p className="mt-4 text-sm text-slate-400">
+        Based on your current habits, you will have{" "}
+        <span className={`align-baseline font-medium ${forecastClass}`}>{formatUAH(forecastValue, undefined, currency)}</span>{" "}
+        left by the end of the month.
+      </p>
     </div>
   )
 }
