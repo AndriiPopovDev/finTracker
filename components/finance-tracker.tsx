@@ -130,6 +130,15 @@ export function FinanceTracker() {
           periodLabel={periodLabel}
           historyOpen={showHistory}
           onToggleHistory={() => setShowHistory((v) => !v)}
+          onImportSuccess={() => {
+            const savedTx = window.localStorage.getItem(monthKey)
+            setTransactions(savedTx ? (JSON.parse(savedTx) as Transaction[]) : [])
+            const savedPlan = window.localStorage.getItem(planKey)
+            setPlan(savedPlan ? Number(savedPlan) : DEFAULT_PLAN)
+          }}
+          onImportError={(msg) => {
+            window.alert(`Import failed: ${msg}`)
+          }}
         />
 
         {/* Period nav (subtle, not in screenshot but useful) */}

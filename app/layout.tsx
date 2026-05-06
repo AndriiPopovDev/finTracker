@@ -10,6 +10,12 @@ export const metadata: Metadata = {
   title: 'Financial Tracker',
   description: 'Track your monthly income and expenses in Ukrainian Hryvnia (₴).',
   generator: 'v0.app',
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  },
   icons: {
     icon: [
       {
