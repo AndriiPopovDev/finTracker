@@ -20,6 +20,12 @@ import { TransactionList } from "@/components/transaction-list"
 
 const DEFAULT_PLAN = 25000
 
+function parseAmount(raw: string): number {
+  const normalized = raw.replace(/,/g, ".")
+  const parsed = Number.parseFloat(normalized)
+  return Number.isFinite(parsed) ? parsed : NaN
+}
+
 export function FinanceTracker() {
   const [date, setDate] = useState<Date>(() => new Date())
   const [transactions, setTransactions] = useState<Transaction[]>([])
@@ -30,6 +36,9 @@ export function FinanceTracker() {
   const [amount, setAmount] = useState("")
   const [category, setCategory] = useState<string>(CATEGORIES.expense[0].name)
   const [showHistory, setShowHistory] = useState(false)
+
+  // Edit state
+  const [editingId, setEditingId] = useState<number | null>(null)
 
   const monthKey = useMemo(() => getMonthKey(date), [date])
   const planKey = useMemo(() => getPlanKey(date), [date])
@@ -46,8 +55,6 @@ export function FinanceTracker() {
   }, [monthKey, planKey])
 
   // Persist transactions for the active month.
-  // Skip writing when the month has no transactions so we don't create
-  // an "empty" entry just by navigating; clean up any prior empty key.
   useEffect(() => {
     if (!hydrated || typeof window === "undefined") return
     if (transactions.length === 0) {
@@ -57,8 +64,7 @@ export function FinanceTracker() {
     }
   }, [transactions, monthKey, hydrated])
 
-  // Persist plan for the active month only when it differs from the default,
-  // so untouched months don't get a plan entry written for them.
+  // Persist plan for the active month only when it differs from the default.
   useEffect(() => {
     if (!hydrated || typeof window === "undefined") return
     if (plan === DEFAULT_PLAN) {
@@ -85,7 +91,7 @@ export function FinanceTracker() {
     .filter((item) => item.value > 0)
 
   const addTransaction = () => {
-    const parsed = Number.parseFloat(amount)
+    const parsed = parseAmount(amount)
     if (!amount || Number.isNaN(parsed) || parsed <= 0) return
     const newTx: Transaction = {
       id: Date.now(),
@@ -98,8 +104,38 @@ export function FinanceTracker() {
     setAmount("")
   }
 
+  const updateTransaction = () => {
+    if (editingId === null) return
+    const parsed = parseAmount(amount)
+    if (!amount || Number.isNaN(parsed) || parsed <= 0) return
+    setTransactions((prev) =>
+      prev.map((t) =>
+        t.id === editingId
+          ? { ...t, amount: parsed, category, type: isIncome ? "income" : "expense" }
+          : t
+      )
+    )
+    setEditingId(null)
+    setAmount("")
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+    setAmount("")
+    setIsIncome(false)
+    setCategory(CATEGORIES.expense[0].name)
+  }
+
+  const startEdit = (tx: Transaction) => {
+    setEditingId(tx.id)
+    setAmount(String(tx.amount))
+    setIsIncome(tx.type === "income")
+    setCategory(tx.category)
+  }
+
   const deleteTransaction = (id: number) => {
     setTransactions(transactions.filter((t) => t.id !== id))
+    if (editingId === id) cancelEdit()
   }
 
   const goToMonth = (offset: number) => {
@@ -128,6 +164,8 @@ export function FinanceTracker() {
       <div className="relative mx-auto w-full max-w-md px-4 pb-16 pt-3 space-y-5">
         <FinanceHeader
           periodLabel={periodLabel}
+          currentDate={date}
+          onDateChange={setDate}
           historyOpen={showHistory}
           onToggleHistory={() => setShowHistory((v) => !v)}
           onImportSuccess={() => {
@@ -141,7 +179,7 @@ export function FinanceTracker() {
           }}
         />
 
-        {/* Period nav (subtle, not in screenshot but useful) */}
+        {/* Period nav */}
         <div className="flex items-center justify-between text-slate-500">
           <button
             type="button"
@@ -174,7 +212,9 @@ export function FinanceTracker() {
           setAmount={setAmount}
           category={category}
           setCategory={setCategory}
-          onAdd={addTransaction}
+          onAdd={editingId !== null ? updateTransaction : addTransaction}
+          onCancelEdit={editingId !== null ? cancelEdit : undefined}
+          isEditing={editingId !== null}
           plan={plan}
           setPlan={setPlan}
           totalActualIncome={totalIncome}
@@ -188,6 +228,7 @@ export function FinanceTracker() {
           transactions={transactions}
           periodLabel={periodLabel}
           onDelete={deleteTransaction}
+          onEdit={startEdit}
         />
       </div>
     </main>
@@ -232,7 +273,6 @@ function HistoryView({
 
   const deleteMonth = (financeKey: string) => {
     if (typeof window === "undefined") return
-    // Remove both the transactions and the matching plan entry for that month.
     window.localStorage.removeItem(financeKey)
     const planKey = financeKey.replace(/^finance_/, "plan_")
     window.localStorage.removeItem(planKey)

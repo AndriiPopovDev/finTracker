@@ -1,13 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import {
-  ArrowDownCircle,
-  ArrowUpCircle,
-  ChevronDown,
-  Plus,
-  TrendingUp,
-} from "lucide-react"
+import { CircleArrowDown as ArrowDownCircle, CircleArrowUp as ArrowUpCircle, Check, ChevronDown, Plus, TrendingUp, X } from "lucide-react"
 import { CATEGORIES, formatUAH } from "@/lib/finance"
 import { CategorySelect } from "@/components/category-select"
 
@@ -19,6 +13,8 @@ type Props = {
   category: string
   setCategory: (v: string) => void
   onAdd: () => void
+  onCancelEdit?: () => void
+  isEditing: boolean
   plan: number
   setPlan: (v: number) => void
   totalActualIncome: number
@@ -32,6 +28,8 @@ export function PlanAndForm({
   category,
   setCategory,
   onAdd,
+  onCancelEdit,
+  isEditing,
   plan,
   setPlan,
   totalActualIncome,
@@ -46,9 +44,14 @@ export function PlanAndForm({
   }, [plan])
 
   const commitPlan = () => {
-    const parsed = Number.parseFloat(planDraft.replace(/,/g, ""))
+    const normalized = planDraft.replace(/,/g, ".")
+    const parsed = Number.parseFloat(normalized)
     setPlan(Number.isFinite(parsed) && parsed >= 0 ? parsed : 0)
     setPlanEditing(false)
+  }
+
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setAmount(e.target.value)
   }
 
   return (
@@ -70,7 +73,7 @@ export function PlanAndForm({
             {planEditing ? (
               <input
                 autoFocus
-                type="number"
+                type="text"
                 inputMode="decimal"
                 value={planDraft}
                 onChange={(e) => setPlanDraft(e.target.value)}
@@ -82,7 +85,7 @@ export function PlanAndForm({
                     setPlanEditing(false)
                   }
                 }}
-                className="mt-1 w-full bg-transparent text-2xl font-extrabold text-white outline-none"
+                className="mt-1 w-full bg-transparent text-2xl font-extrabold text-white outline-none [font-size:16px]"
               />
             ) : (
               <button
@@ -108,10 +111,10 @@ export function PlanAndForm({
 
       <div className="h-px bg-slate-800" aria-hidden="true" />
 
-      {/* Add Transaction */}
+      {/* Add / Edit Transaction */}
       <div>
         <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
-          Add Transaction
+          {isEditing ? "Edit Transaction" : "Add Transaction"}
         </p>
 
         {/* Type toggle */}
@@ -148,7 +151,7 @@ export function PlanAndForm({
           </button>
         </div>
 
-        {/* Amount + Category + Add */}
+        {/* Amount + Category + Submit */}
         <div className="mt-3 grid grid-cols-[1fr_1fr_auto] gap-2">
           <label className="relative">
             <span className="sr-only">Amount</span>
@@ -160,15 +163,16 @@ export function PlanAndForm({
               )}
             </span>
             <input
-              type="number"
+              type="text"
               inputMode="decimal"
               placeholder="Amount..."
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={handleAmountChange}
               onKeyDown={(e) => {
                 if (e.key === "Enter") onAdd()
+                if (e.key === "Escape" && isEditing && onCancelEdit) onCancelEdit()
               }}
-              className="h-12 w-full rounded-xl border border-slate-800 bg-slate-900/60 pl-9 pr-3 text-sm text-white placeholder:text-slate-500 outline-none focus:border-blue-500"
+              className="h-12 w-full rounded-xl border border-slate-800 bg-slate-900/60 pl-9 pr-3 text-[16px] text-white placeholder:text-slate-500 outline-none focus:border-blue-500"
             />
           </label>
 
@@ -178,14 +182,35 @@ export function PlanAndForm({
             onChange={setCategory}
           />
 
-          <button
-            type="button"
-            onClick={onAdd}
-            aria-label="Add transaction"
-            className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-rose-500 to-rose-700 text-white shadow-lg shadow-rose-600/40 transition-transform hover:scale-105 hover:from-rose-400 hover:to-rose-600 active:scale-95"
-          >
-            <Plus className="h-5 w-5" aria-hidden="true" />
-          </button>
+          {isEditing ? (
+            <div className="flex gap-1">
+              <button
+                type="button"
+                onClick={onAdd}
+                aria-label="Update transaction"
+                className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-lg shadow-blue-600/40 transition-transform hover:scale-105 hover:from-blue-400 hover:to-blue-600 active:scale-95"
+              >
+                <Check className="h-5 w-5" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                onClick={onCancelEdit}
+                aria-label="Cancel editing"
+                className="flex h-12 w-12 items-center justify-center rounded-xl border border-slate-700 bg-slate-900/60 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+              >
+                <X className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={onAdd}
+              aria-label="Add transaction"
+              className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-rose-500 to-rose-700 text-white shadow-lg shadow-rose-600/40 transition-transform hover:scale-105 hover:from-rose-400 hover:to-rose-600 active:scale-95"
+            >
+              <Plus className="h-5 w-5" aria-hidden="true" />
+            </button>
+          )}
         </div>
       </div>
     </div>

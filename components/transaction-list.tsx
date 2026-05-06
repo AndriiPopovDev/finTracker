@@ -1,15 +1,16 @@
 "use client"
 
-import { ArrowDownCircle, ArrowUpCircle, Trash2 } from "lucide-react"
+import { CircleArrowDown as ArrowDownCircle, CircleArrowUp as ArrowUpCircle, Pencil, Trash2 } from "lucide-react"
 import { formatUAH, getCategoryEmoji, type Transaction } from "@/lib/finance"
 
 type Props = {
   transactions: Transaction[]
   periodLabel: string
   onDelete: (id: number) => void
+  onEdit: (tx: Transaction) => void
 }
 
-export function TransactionList({ transactions, periodLabel, onDelete }: Props) {
+export function TransactionList({ transactions, periodLabel, onDelete, onEdit }: Props) {
   return (
     <div className="space-y-3">
       <h3 className="px-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
@@ -54,9 +55,18 @@ export function TransactionList({ transactions, periodLabel, onDelete }: Props) 
                   </p>
                   <p className="truncate text-xs text-slate-400">
                     <span aria-hidden="true">{getCategoryEmoji(t.type, t.category)} </span>
-                    {t.category} <span className="text-slate-600">·</span> {t.date}
+                    {t.category} <span className="text-slate-600">&middot;</span> {t.date}
                   </p>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => onEdit(t)}
+                  aria-label={`Edit ${t.category} transaction`}
+                  className="shrink-0 rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-800 hover:text-blue-400"
+                >
+                  <Pencil className="h-4 w-4" aria-hidden="true" />
+                </button>
 
                 <button
                   type="button"

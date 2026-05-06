@@ -122,5 +122,6 @@
   }
   body {
     @apply bg-background text-foreground;
+    touch-action: pan-x pan-y;
   }
 }
