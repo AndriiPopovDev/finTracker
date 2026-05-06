@@ -38,9 +38,10 @@ type Props = {
   categories: readonly CategoryInfo[]
   value: string
   onChange: (next: string) => void
+  onKeepInputFocus?: () => void
 }
 
-export function CategorySelect({ categories, value, onChange }: Props) {
+export function CategorySelect({ categories, value, onChange, onKeepInputFocus }: Props) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement | null>(null)
 
@@ -67,6 +68,7 @@ export function CategorySelect({ categories, value, onChange }: Props) {
     <div className="relative min-w-0" ref={ref}>
       <button
         type="button"
+        onPointerDown={(e) => e.preventDefault()}
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="listbox"
         aria-expanded={open}
@@ -116,9 +118,11 @@ export function CategorySelect({ categories, value, onChange }: Props) {
                     type="button"
                     role="option"
                     aria-selected={active}
+                    onPointerDown={(e) => e.preventDefault()}
                     onClick={() => {
                       onChange(c.name)
                       setOpen(false)
+                      onKeepInputFocus?.()
                     }}
                     className={`group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-slate-100 transition-colors hover:bg-white/10 ${
                       active ? "bg-white/10" : ""

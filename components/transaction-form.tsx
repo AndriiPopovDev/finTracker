@@ -114,6 +114,11 @@ export function TransactionForm({
   const categories = isIncome ? CATEGORIES.income : CATEGORIES.expense
   const [calcPreview, setCalcPreview] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const keepAmountFocus = () => {
+    window.setTimeout(() => {
+      inputRef.current?.focus({ preventScroll: true })
+    }, 0)
+  }
 
   const insertCharAtCursor = (char: string) => {
     const input = inputRef.current
@@ -198,7 +203,12 @@ export function TransactionForm({
       <div className="grid grid-cols-2 gap-2">
         <button
           type="button"
-          onClick={() => { setIsIncome(false); setCategory(CATEGORIES.expense[0].name) }}
+          onPointerDown={(e) => e.preventDefault()}
+          onClick={() => {
+            setIsIncome(false)
+            setCategory(CATEGORIES.expense[0].name)
+            keepAmountFocus()
+          }}
           className={`flex items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-semibold transition-colors ${
             !isIncome
               ? "border-rose-500/40 bg-rose-500/10 text-rose-400"
@@ -210,7 +220,12 @@ export function TransactionForm({
         </button>
         <button
           type="button"
-          onClick={() => { setIsIncome(true); setCategory(CATEGORIES.income[0].name) }}
+          onPointerDown={(e) => e.preventDefault()}
+          onClick={() => {
+            setIsIncome(true)
+            setCategory(CATEGORIES.income[0].name)
+            keepAmountFocus()
+          }}
           className={`flex items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-semibold transition-colors ${
             isIncome
               ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
@@ -237,7 +252,11 @@ export function TransactionForm({
         {!isEditing && (
           <button
             type="button"
-            onClick={() => setIsRecurring(!isRecurring)}
+            onPointerDown={(e) => e.preventDefault()}
+            onClick={() => {
+              setIsRecurring(!isRecurring)
+              keepAmountFocus()
+            }}
             aria-pressed={isRecurring}
             className={`flex h-11 shrink-0 items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold transition-colors ${
               isRecurring
@@ -283,11 +302,12 @@ export function TransactionForm({
           )}
         </label>
 
-        <CategorySelect categories={categories} value={category} onChange={setCategory} />
+        <CategorySelect categories={categories} value={category} onChange={setCategory} onKeepInputFocus={keepAmountFocus} />
 
         {!isEditing && (
           <button
             type="button"
+            onPointerDown={(e) => e.preventDefault()}
             onClick={resolveAndSubmit}
             aria-label="Add transaction"
             className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-rose-500 to-rose-700 text-white shadow-lg shadow-rose-600/40 transition-transform hover:scale-105 active:scale-95"
@@ -319,7 +339,11 @@ export function TransactionForm({
           <div className="fade-edge-r -mx-0.5 flex w-full items-center gap-1.5 overflow-x-auto whitespace-nowrap pb-0.5 pl-0.5 pr-6 scrollbar-none [touch-action:pan-x] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             <button
               type="button"
-              onClick={handleSmartPaste}
+              onPointerDown={(e) => e.preventDefault()}
+            onClick={() => {
+              handleSmartPaste()
+              keepAmountFocus()
+            }}
               aria-label="Paste amount from clipboard"
               title="Paste from clipboard"
               className="flex shrink-0 items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900/70 px-2.5 py-1 text-[11px] font-medium text-slate-300 transition-colors hover:border-blue-500/40 hover:bg-blue-500/10 hover:text-blue-400"
@@ -333,7 +357,11 @@ export function TransactionForm({
                 <button
                   key={t.id}
                   type="button"
-                  onClick={() => onApplyTemplate(t)}
+                  onPointerDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    onApplyTemplate(t)
+                    keepAmountFocus()
+                  }}
                   aria-label={`Quick add ${t.label}: ${t.amount} ${currency === "UAH" ? "₴" : currency === "USD" ? "$" : "€"}`}
                   className="flex shrink-0 items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900/70 px-2.5 py-1 text-[11px] font-medium text-slate-300 transition-colors hover:border-emerald-500/40 hover:bg-emerald-500/10 hover:text-emerald-400"
                 >

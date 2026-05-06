@@ -364,7 +364,7 @@ export function FinanceTracker() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", stiffness: 360, damping: 32, mass: 0.8 }}
-              className="fixed inset-x-0 bottom-10 z-50 mx-auto w-full max-w-md max-h-[68dvh] overflow-y-auto rounded-3xl border border-slate-700 bg-slate-950/98 px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-2 shadow-2xl shadow-black/60 backdrop-blur-xl"
+              className="fixed inset-x-0 bottom-10 z-50 mx-auto w-full max-w-md max-h-[68dvh] overflow-visible rounded-3xl border border-slate-700 bg-slate-950/98 px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-2 shadow-2xl shadow-black/60 backdrop-blur-xl"
             >
               {/* Drag handle */}
               <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-slate-700" aria-hidden="true" />
