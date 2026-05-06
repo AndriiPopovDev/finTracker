@@ -131,17 +131,6 @@ export function FinanceHeader({
           )}
         </div>
 
-        {/* Export — arrow up */}
-        <button
-          type="button"
-          onClick={exportAllData}
-          aria-label="Export data as JSON"
-          title="Export backup"
-          className="rounded-full p-2 text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
-        >
-          <Upload className="h-5 w-5" aria-hidden="true" />
-        </button>
-
         {/* Import — arrow down */}
         <button
           type="button"
@@ -151,6 +140,17 @@ export function FinanceHeader({
           className="rounded-full p-2 text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
         >
           <Download className="h-5 w-5" aria-hidden="true" />
+        </button>
+
+        {/* Export — arrow up */}
+        <button
+          type="button"
+          onClick={exportAllData}
+          aria-label="Export data as JSON"
+          title="Export backup"
+          className="rounded-full p-2 text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+        >
+          <Upload className="h-5 w-5" aria-hidden="true" />
         </button>
 
         <input
