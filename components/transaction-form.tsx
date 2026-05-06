@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
   CircleArrowDown as ArrowDownCircle,
   CircleArrowUp as ArrowUpCircle,
@@ -83,6 +83,20 @@ export function TransactionForm({
 }: Props) {
   const categories = isIncome ? CATEGORIES.income : CATEGORIES.expense
   const [calcPreview, setCalcPreview] = useState<string | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const insertCharAtCursor = (char: string) => {
+    const input = inputRef.current
+    if (!input) return
+    const start = input.selectionStart ?? amount.length
+    const end = input.selectionEnd ?? amount.length
+    const newValue = amount.slice(0, start) + char + amount.slice(end)
+    setAmount(newValue)
+    setTimeout(() => {
+      input.setSelectionRange(start + char.length, start + char.length)
+      input.focus()
+    }, 0)
+  }
 
   useEffect(() => {
     if (!amount) { setCalcPreview(null); return }
@@ -174,6 +188,7 @@ export function TransactionForm({
             }
           </span>
           <input
+            ref={inputRef}
             type="text"
             inputMode="decimal"
             placeholder="Amount..."
@@ -224,6 +239,21 @@ export function TransactionForm({
             <Plus className="h-5 w-5" aria-hidden="true" />
           </button>
         )}
+      </div>
+
+      {/* Math keyboard accessory bar for iOS */}
+      <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
+        {["+", "-", "*", "/", "(", ")"].map((sym) => (
+          <button
+            key={sym}
+            type="button"
+            onClick={() => insertCharAtCursor(sym)}
+            className="shrink-0 h-8 w-8 rounded-lg border border-slate-700 bg-slate-900/80 text-slate-300 text-sm font-semibold transition-colors hover:border-blue-500/40 hover:bg-blue-500/10 hover:text-blue-400 active:scale-95"
+            aria-label={`Insert ${sym}`}
+          >
+            {sym}
+          </button>
+        ))}
       </div>
 
       {/* Quick Templates + Smart Paste */}

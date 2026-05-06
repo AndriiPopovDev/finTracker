@@ -50,20 +50,20 @@ export function SpendingChart({ data, totalExpense }: Props) {
               const barColor = catInfo?.color ?? COLORS[i % COLORS.length]
               return (
                 <li key={d.name} className="space-y-1.5">
-                  <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-start justify-between text-sm">
                     <span className="flex items-center gap-2 text-slate-200">
                       <span
-                        className="inline-block h-2.5 w-2.5 rounded-full"
+                        className="inline-block h-2.5 w-2.5 rounded-full flex-shrink-0"
                         style={{ backgroundColor: barColor }}
                         aria-hidden="true"
                       />
                       <span aria-hidden="true">{getCategoryEmoji("expense", d.name)}</span>
                       <span>{d.name}</span>
                     </span>
-                    <span className="font-medium text-slate-300">
-                      {formatUAH(d.value)}
-                      <span className="ml-1.5 text-[11px] text-slate-500">{Math.round(pct)}%</span>
-                    </span>
+                    <div className="flex items-baseline gap-2 text-right flex-shrink-0">
+                      <span className="font-medium text-slate-300">{formatUAH(d.value)}</span>
+                      <span className="text-[11px] text-slate-500 w-8">{Math.round(pct)}%</span>
+                    </div>
                   </div>
                   <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800/80">
                     <div
