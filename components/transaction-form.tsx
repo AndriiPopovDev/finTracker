@@ -325,8 +325,8 @@ export function TransactionForm({
           </div>
         </div>
       ) : (
-        /* Expense/Income mode: single destination picker */
-        <div className="grid grid-cols-3 gap-2">
+        /* Expense/Income mode: destination picker + Monthly */
+        <div className="grid grid-cols-4 gap-2">
           {DESTINATION_OPTIONS.filter((item) => transactionType === "income" || item.value !== "savings").map((item) => (
             <button
               key={item.value}
@@ -345,29 +345,29 @@ export function TransactionForm({
               {item.label}
             </button>
           ))}
+          {!isEditing && (
+            <button
+              type="button"
+              onPointerDown={(e) => e.preventDefault()}
+              onClick={() => {
+                setIsRecurring(!isRecurring)
+                keepAmountFocus()
+              }}
+              aria-pressed={isRecurring}
+              className={`flex items-center justify-center gap-1.5 rounded-xl border py-2 text-xs font-semibold transition-colors ${
+                isRecurring
+                  ? "border-purple-500/50 bg-purple-500/15 text-purple-300 shadow-[0_0_8px_rgba(168,85,247,0.2)]"
+                  : "border-slate-800 bg-slate-900/60 text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              <Repeat className="h-3.5 w-3.5" aria-hidden="true" />
+              Monthly
+            </button>
+          )}
         </div>
       )}
 
-      {/* Monthly toggle (only for non-transfer) */}
-      {!isTransfer && !isEditing && (
-        <button
-          type="button"
-          onPointerDown={(e) => e.preventDefault()}
-          onClick={() => {
-            setIsRecurring(!isRecurring)
-            keepAmountFocus()
-          }}
-          aria-pressed={isRecurring}
-          className={`w-full flex items-center justify-center gap-1.5 rounded-xl border py-2.5 text-xs font-semibold transition-colors ${
-            isRecurring
-              ? "border-purple-500/50 bg-purple-500/15 text-purple-300 shadow-[0_0_8px_rgba(168,85,247,0.2)]"
-              : "border-slate-800 bg-slate-900/60 text-slate-400 hover:text-slate-200"
-          }`}
-        >
-          <Repeat className="h-3.5 w-3.5" aria-hidden="true" />
-          Monthly
-        </button>
-      )}
+
 
       {/* Amount + Category/Submit + Name */}
       <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-2">

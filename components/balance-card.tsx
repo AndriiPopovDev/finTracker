@@ -1,15 +1,18 @@
+import { Repeat } from "lucide-react"
 import { formatUAH, type CurrencyCode } from "@/lib/finance"
 
 type Props = {
   card: number
   cash: number
   savings: number
+  monthlyTotal: number
   currency: CurrencyCode
   onCurrencyChange: (currency: CurrencyCode) => void
 }
 
-export function BalanceCard({ card, cash, savings, currency, onCurrencyChange }: Props) {
+export function BalanceCard({ card, cash, savings, monthlyTotal, currency, onCurrencyChange }: Props) {
   const globalBalance = card + cash
+  const remainingBalance = globalBalance - monthlyTotal
 
   return (
     <div className="relative overflow-hidden rounded-3xl border border-blue-500/20 bg-gradient-to-br from-blue-950 via-slate-900 to-slate-950 p-5 shadow-2xl shadow-blue-950/40">
@@ -59,14 +62,21 @@ export function BalanceCard({ card, cash, savings, currency, onCurrencyChange }:
           </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="rounded-xl border border-slate-800/60 bg-slate-900/40 p-3">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Card</p>
-            <p className="mt-1 text-lg font-medium text-slate-200">{formatUAH(card, undefined, currency)}</p>
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          <div className="rounded-xl border border-slate-800/60 bg-slate-900/40 p-2.5">
+            <p className="text-[9px] font-medium uppercase tracking-wider text-slate-500">Card</p>
+            <p className="mt-1 text-sm font-medium text-slate-200">{formatUAH(card, undefined, currency)}</p>
           </div>
-          <div className="rounded-xl border border-slate-800/60 bg-slate-900/40 p-3">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Cash</p>
-            <p className="mt-1 text-lg font-medium text-slate-200">{formatUAH(cash, undefined, currency)}</p>
+          <div className="rounded-xl border border-slate-800/60 bg-slate-900/40 p-2.5">
+            <p className="text-[9px] font-medium uppercase tracking-wider text-slate-500">Cash</p>
+            <p className="mt-1 text-sm font-medium text-slate-200">{formatUAH(cash, undefined, currency)}</p>
+          </div>
+          <div className="rounded-xl border border-purple-500/20 bg-purple-500/5 p-2.5">
+            <div className="flex items-center gap-1">
+              <Repeat className="h-3 w-3 text-purple-400" />
+              <p className="text-[9px] font-medium uppercase tracking-wider text-purple-400/80">Monthly</p>
+            </div>
+            <p className="mt-1 text-sm font-medium text-purple-300">{formatUAH(monthlyTotal, undefined, currency)}</p>
           </div>
         </div>
 
@@ -77,6 +87,15 @@ export function BalanceCard({ card, cash, savings, currency, onCurrencyChange }:
           </div>
           <p className="mt-0.5 text-[10px] text-slate-500">Not included in global balance</p>
         </div>
+
+        {monthlyTotal > 0 && (
+          <div className="mt-2 rounded-xl border border-emerald-500/10 bg-emerald-500/5 p-2.5">
+            <div className="flex items-center justify-between text-xs text-slate-400">
+              <span className="font-medium">Remaining (after monthly)</span>
+              <span className="font-medium text-emerald-400">{formatUAH(remainingBalance, undefined, currency)}</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

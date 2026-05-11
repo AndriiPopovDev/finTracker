@@ -86,6 +86,9 @@ export function FinanceTracker() {
   // Edit state
   const [editingId, setEditingId] = useState<number | null>(null)
 
+  // Calculate total monthly subscriptions
+  const monthlyTotal = recurringTemplates.reduce((sum, t) => sum + t.amount, 0)
+
   const monthKey = useMemo(() => getMonthKey(date), [date])
   const planKey = useMemo(() => getPlanKey(date), [date])
   const periodLabel = useMemo(() => formatPeriod(date), [date])
@@ -470,6 +473,7 @@ export function FinanceTracker() {
           card={card}
           cash={cash}
           savings={savings}
+          monthlyTotal={monthlyTotal}
           currency={currency}
           onCurrencyChange={setCurrency}
         />
