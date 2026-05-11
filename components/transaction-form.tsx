@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import {
   CircleArrowDown as ArrowDownCircle,
   CircleArrowUp as ArrowUpCircle,
+  ArrowLeftRight,
   Check,
   ClipboardPaste,
   Coffee,
@@ -13,9 +14,12 @@ import {
   Utensils,
   X,
   Repeat,
+  CreditCard,
+  Wallet,
+  PiggyBank,
   type LucideIcon,
 } from "lucide-react"
-import { CATEGORIES, formatUAH, type CurrencyCode } from "@/lib/finance"
+import { CATEGORIES, formatUAH, type CurrencyCode, type TransactionDestination, type TransactionType } from "@/lib/finance"
 import { CategorySelect } from "@/components/category-select"
 
 function evaluateExpression(raw: string): number | null {
@@ -74,9 +78,15 @@ type QuickTemplate = {
   category: string
 }
 
+const DESTINATION_OPTIONS: { value: TransactionDestination; label: string; icon: LucideIcon }[] = [
+  { value: "card", label: "Card", icon: CreditCard },
+  { value: "cash", label: "Cash", icon: Wallet },
+  { value: "savings", label: "Savings", icon: PiggyBank },
+]
+
 type Props = {
-  isIncome: boolean
-  setIsIncome: (v: boolean) => void
+  transactionType: TransactionType
+  setTransactionType: (v: TransactionType) => void
   amount: string
   setAmount: (v: string) => void
   name: string
@@ -88,14 +98,20 @@ type Props = {
   onApplyTemplate: (template: QuickTemplate) => void
   category: string
   setCategory: (v: string) => void
+  destination: TransactionDestination
+  setDestination: (v: TransactionDestination) => void
+  transferFrom: TransactionDestination
+  setTransferFrom: (v: TransactionDestination) => void
+  transferTo: TransactionDestination
+  setTransferTo: (v: TransactionDestination) => void
   onAdd: () => void
   onCancelEdit?: () => void
   isEditing: boolean
 }
 
 export function TransactionForm({
-  isIncome,
-  setIsIncome,
+  transactionType,
+  setTransactionType,
   amount,
   setAmount,
   name,
@@ -107,11 +123,17 @@ export function TransactionForm({
   onApplyTemplate,
   category,
   setCategory,
+  destination,
+  setDestination,
+  transferFrom,
+  setTransferFrom,
+  transferTo,
+  setTransferTo,
   onAdd,
   onCancelEdit,
   isEditing,
 }: Props) {
-  const categories = isIncome ? CATEGORIES.income : CATEGORIES.expense
+  const categories = transactionType === "income" ? CATEGORIES.income : CATEGORIES.expense
   const [calcPreview, setCalcPreview] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const keepAmountFocus = () => {
@@ -142,7 +164,6 @@ export function TransactionForm({
   useEffect(() => {
     const input = inputRef.current
     if (!input) return
-    // Aggressive focus sequence for mobile keyboards.
     const focusNow = () => {
       input.focus({ preventScroll: true })
       const end = input.value.length
@@ -177,7 +198,7 @@ export function TransactionForm({
       if (parsed) {
         setAmount(String(parsed.amount))
         setCategory(parsed.category)
-        setIsIncome(false)
+        setTransactionType("expense")
       } else {
         const numMatch = text.match(/(\d[\d,.]*)/)
         if (numMatch) {
@@ -193,24 +214,26 @@ export function TransactionForm({
     ? quickTemplates.map((t) => ({ ...t, icon: TEMPLATE_ICON_MAP[t.label] ?? Coffee }))
     : FALLBACK_TEMPLATES.map((t, idx) => ({ id: String(idx), label: t.label, amount: t.amount, category: t.category, icon: t.icon }))
 
+  const isTransfer = transactionType === "transfer"
+
   return (
     <div className="space-y-2">
       <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
         {isEditing ? "Edit Transaction" : "New Transaction"}
       </p>
 
-      {/* Type toggle */}
-      <div className="grid grid-cols-2 gap-2">
+      {/* Type toggle: Expense | Income | Transfer */}
+      <div className="grid grid-cols-3 gap-2">
         <button
           type="button"
           onPointerDown={(e) => e.preventDefault()}
           onClick={() => {
-            setIsIncome(false)
+            setTransactionType("expense")
             setCategory(CATEGORIES.expense[0].name)
             keepAmountFocus()
           }}
-          className={`flex items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-semibold transition-colors ${
-            !isIncome
+          className={`flex items-center justify-center gap-1.5 rounded-xl border py-2.5 text-xs font-semibold transition-colors ${
+            transactionType === "expense"
               ? "border-rose-500/40 bg-rose-500/10 text-rose-400"
               : "border-slate-800 bg-slate-900/60 text-slate-400 hover:text-slate-200"
           }`}
@@ -222,12 +245,12 @@ export function TransactionForm({
           type="button"
           onPointerDown={(e) => e.preventDefault()}
           onClick={() => {
-            setIsIncome(true)
+            setTransactionType("income")
             setCategory(CATEGORIES.income[0].name)
             keepAmountFocus()
           }}
-          className={`flex items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-semibold transition-colors ${
-            isIncome
+          className={`flex items-center justify-center gap-1.5 rounded-xl border py-2.5 text-xs font-semibold transition-colors ${
+            transactionType === "income"
               ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
               : "border-slate-800 bg-slate-900/60 text-slate-400 hover:text-slate-200"
           }`}
@@ -235,49 +258,127 @@ export function TransactionForm({
           <ArrowUpCircle className="h-4 w-4" aria-hidden="true" />
           Income
         </button>
+        <button
+          type="button"
+          onPointerDown={(e) => e.preventDefault()}
+          onClick={() => {
+            setTransactionType("transfer")
+            keepAmountFocus()
+          }}
+          className={`flex items-center justify-center gap-1.5 rounded-xl border py-2.5 text-xs font-semibold transition-colors ${
+            transactionType === "transfer"
+              ? "border-blue-500/40 bg-blue-500/10 text-blue-400"
+              : "border-slate-800 bg-slate-900/60 text-slate-400 hover:text-slate-200"
+          }`}
+        >
+          <ArrowLeftRight className="h-4 w-4" aria-hidden="true" />
+          Transfer
+        </button>
       </div>
 
-      {/* Name + Monthly toggle */}
-      <div className="flex items-center gap-2">
-        <label className="relative flex-1">
-          <span className="sr-only">Name</span>
-          <input
-            type="text"
-            placeholder="Name (optional)"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="h-11 w-full rounded-xl border border-slate-800 bg-slate-900/60 px-3 text-sm text-white placeholder:text-slate-500 outline-none focus:border-blue-500"
-          />
-        </label>
-        {!isEditing && (
-          <button
-            type="button"
-            onPointerDown={(e) => e.preventDefault()}
-            onClick={() => {
-              setIsRecurring(!isRecurring)
-              keepAmountFocus()
-            }}
-            aria-pressed={isRecurring}
-            className={`flex h-11 shrink-0 items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold transition-colors ${
-              isRecurring
-                ? "border-blue-500/50 bg-blue-500/15 text-blue-300"
-                : "border-slate-800 bg-slate-900/60 text-slate-400 hover:text-slate-200"
-            }`}
-          >
-            <Repeat className="h-3.5 w-3.5" aria-hidden="true" />
-            Monthly
-          </button>
-        )}
-      </div>
+      {/* Transfer mode: From → To selectors */}
+      {isTransfer ? (
+        <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">From</p>
+              <div className="grid grid-cols-3 gap-1.5">
+                {DESTINATION_OPTIONS.map((item) => (
+                  <button
+                    key={item.value}
+                    type="button"
+                    onPointerDown={(e) => e.preventDefault()}
+                    onClick={() => setTransferFrom(item.value)}
+                    className={`flex flex-col items-center justify-center gap-0.5 rounded-lg border py-2 text-[9px] font-semibold transition-colors ${
+                      transferFrom === item.value
+                        ? "border-rose-500/40 bg-rose-500/10 text-rose-400"
+                        : "border-slate-800 bg-slate-900/60 text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    <item.icon className="h-4 w-4" aria-hidden="true" />
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">To</p>
+              <div className="grid grid-cols-3 gap-1.5">
+                {DESTINATION_OPTIONS.map((item) => (
+                  <button
+                    key={item.value}
+                    type="button"
+                    onPointerDown={(e) => e.preventDefault()}
+                    onClick={() => setTransferTo(item.value)}
+                    className={`flex flex-col items-center justify-center gap-0.5 rounded-lg border py-2 text-[9px] font-semibold transition-colors ${
+                      transferTo === item.value
+                        ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
+                        : "border-slate-800 bg-slate-900/60 text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    <item.icon className="h-4 w-4" aria-hidden="true" />
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* Expense/Income mode: single destination picker */
+        <div className="grid grid-cols-3 gap-2">
+          {DESTINATION_OPTIONS.filter((item) => transactionType === "income" || item.value !== "savings").map((item) => (
+            <button
+              key={item.value}
+              type="button"
+              onPointerDown={(e) => e.preventDefault()}
+              onClick={() => setDestination(item.value)}
+              className={`flex items-center justify-center gap-1.5 rounded-xl border py-2 text-xs font-semibold transition-colors ${
+                destination === item.value
+                  ? item.value === "card" ? "border-blue-500/40 bg-blue-500/10 text-blue-400" :
+                    item.value === "cash" ? "border-amber-500/40 bg-amber-500/10 text-amber-400" :
+                    "border-purple-500/40 bg-purple-500/10 text-purple-400"
+                  : "border-slate-800 bg-slate-900/60 text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              <item.icon className="h-3.5 w-3.5" aria-hidden="true" />
+              {item.label}
+            </button>
+          ))}
+        </div>
+      )}
 
-      {/* Amount + Category + Submit */}
+      {/* Monthly toggle (only for non-transfer) */}
+      {!isTransfer && !isEditing && (
+        <button
+          type="button"
+          onPointerDown={(e) => e.preventDefault()}
+          onClick={() => {
+            setIsRecurring(!isRecurring)
+            keepAmountFocus()
+          }}
+          aria-pressed={isRecurring}
+          className={`w-full flex items-center justify-center gap-1.5 rounded-xl border py-2.5 text-xs font-semibold transition-colors ${
+            isRecurring
+              ? "border-purple-500/50 bg-purple-500/15 text-purple-300 shadow-[0_0_8px_rgba(168,85,247,0.2)]"
+              : "border-slate-800 bg-slate-900/60 text-slate-400 hover:text-slate-200"
+          }`}
+        >
+          <Repeat className="h-3.5 w-3.5" aria-hidden="true" />
+          Monthly
+        </button>
+      )}
+
+      {/* Amount + Category/Submit + Name */}
       <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-2">
         <label className="relative min-w-0">
           <span className="sr-only">Amount</span>
           <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-500">
-            {isIncome
+            {transactionType === "income"
               ? <ArrowUpCircle className="h-4 w-4 text-emerald-500/80" aria-hidden="true" />
-              : <ArrowDownCircle className="h-4 w-4 text-rose-500/80" aria-hidden="true" />
+              : transactionType === "expense"
+              ? <ArrowDownCircle className="h-4 w-4 text-rose-500/80" aria-hidden="true" />
+              : <ArrowLeftRight className="h-4 w-4 text-blue-500/80" aria-hidden="true" />
             }
           </span>
           <input
@@ -302,20 +403,40 @@ export function TransactionForm({
           )}
         </label>
 
-        <CategorySelect categories={categories} value={category} onChange={setCategory} onKeepInputFocus={keepAmountFocus} />
+        {!isTransfer && (
+          <CategorySelect categories={categories} value={category} onChange={setCategory} onKeepInputFocus={keepAmountFocus} />
+        )}
 
         {!isEditing && (
           <button
             type="button"
             onPointerDown={(e) => e.preventDefault()}
             onClick={resolveAndSubmit}
-            aria-label="Add transaction"
-            className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-rose-500 to-rose-700 text-white shadow-lg shadow-rose-600/40 transition-transform hover:scale-105 active:scale-95"
+            aria-label={isTransfer ? "Execute transfer" : "Add transaction"}
+            className={`flex h-11 w-11 items-center justify-center rounded-xl text-white shadow-lg transition-transform hover:scale-105 active:scale-95 ${
+              isTransfer
+                ? "bg-gradient-to-br from-blue-500 to-blue-700 shadow-blue-600/40"
+                : "bg-gradient-to-br from-rose-500 to-rose-700 shadow-rose-600/40"
+            }`}
           >
             <Plus className="h-5 w-5" aria-hidden="true" />
           </button>
         )}
       </div>
+
+      {/* Name field (optional, below amount row) */}
+      {!isTransfer && (
+        <label className="relative w-full">
+          <span className="sr-only">Name</span>
+          <input
+            type="text"
+            placeholder="Name (optional)"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="h-11 w-full rounded-xl border border-slate-800 bg-slate-900/60 px-3 text-sm text-white placeholder:text-slate-500 outline-none focus:border-blue-500"
+          />
+        </label>
+      )}
 
       {/* Math keyboard accessory bar for iOS */}
       <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">

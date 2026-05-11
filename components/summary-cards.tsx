@@ -16,7 +16,7 @@ export function SummaryCards({ totalIncome, totalExpense, currency }: Props) {
       <div className="relative overflow-hidden rounded-2xl border border-emerald-500/15 bg-gradient-to-br from-emerald-500/10 via-slate-900/60 to-slate-900/40 p-4 shadow-lg shadow-emerald-950/20">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full bg-emerald-500/20 blur-2xl"
+          className="pointer-events-none absolute -right-16 -top-16 h-32 w-32 rounded-full bg-emerald-500/10 blur-[80px]"
         />
         <div className="relative flex items-center gap-2 text-slate-300">
           <ArrowUpCircle className="h-4 w-4 text-emerald-400" aria-hidden="true" />
@@ -32,7 +32,7 @@ export function SummaryCards({ totalIncome, totalExpense, currency }: Props) {
       <div className="relative overflow-hidden rounded-2xl border border-rose-500/15 bg-gradient-to-br from-rose-500/10 via-slate-900/60 to-slate-900/40 p-4 shadow-lg shadow-rose-950/20">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full bg-rose-500/20 blur-2xl"
+          className="pointer-events-none absolute -right-16 -top-16 h-32 w-32 rounded-full bg-rose-500/10 blur-[80px]"
         />
         <div className="relative flex items-center gap-2 text-slate-300">
           <ArrowDownCircle className="h-4 w-4 text-rose-400" aria-hidden="true" />

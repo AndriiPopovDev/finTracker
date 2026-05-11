@@ -1,6 +1,6 @@
 "use client"
 
-import { CircleArrowDown as ArrowDownCircle, CircleArrowUp as ArrowUpCircle, Pencil, Trash2 } from "lucide-react"
+import { CircleArrowDown as ArrowDownCircle, CircleArrowUp as ArrowUpCircle, ArrowLeftRight, Repeat, Pencil, Trash2 } from "lucide-react"
 import { formatUAH, getCategoryEmoji, type CurrencyCode, type Transaction } from "@/lib/finance"
 
 type Props = {
@@ -25,7 +25,8 @@ export function TransactionList({ transactions, periodLabel, onDelete, onEdit, c
       ) : (
         <ul className="space-y-2">
           {transactions.map((t) => {
-            const signedAmount = t.type === "income" ? Math.abs(t.amount) : -Math.abs(t.amount)
+            const isTransfer = t.type === "transfer"
+            const signedAmount = t.type === "income" ? Math.abs(t.amount) : t.type === "expense" ? -Math.abs(t.amount) : 0
             const isIncome = signedAmount > 0
             return (
               <li
@@ -34,13 +35,19 @@ export function TransactionList({ transactions, periodLabel, onDelete, onEdit, c
               >
                 <span
                   className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border ${
-                    isIncome
+                    isTransfer
+                      ? "border-blue-500/30 bg-blue-500/10 text-blue-400"
+                      : isIncome
                       ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
                       : "border-rose-500/30 bg-rose-500/10 text-rose-400"
                   }`}
                   aria-hidden="true"
                 >
-                  {isIncome ? (
+                  {t.recurringId ? (
+                    <Repeat className="h-5 w-5 text-purple-400" />
+                  ) : isTransfer ? (
+                    <ArrowLeftRight className="h-5 w-5" />
+                  ) : isIncome ? (
                     <ArrowUpCircle className="h-5 w-5" />
                   ) : (
                     <ArrowDownCircle className="h-5 w-5" />
@@ -50,17 +57,42 @@ export function TransactionList({ transactions, periodLabel, onDelete, onEdit, c
                 <div className="min-w-0 flex-1">
                   <p
                     className={`text-base font-medium ${
+                      isTransfer ? "text-blue-400" :
                       signedAmount > 0 ? "text-emerald-500" : "text-rose-500"
                     }`}
                   >
-                    {formatUAH(Math.abs(t.amount), signedAmount > 0 ? "plus" : "minus", currency)}
+                    {isTransfer ? (
+                      formatUAH(Math.abs(t.amount), undefined, currency)
+                    ) : (
+                      formatUAH(Math.abs(t.amount), signedAmount > 0 ? "plus" : "minus", currency)
+                    )}
                   </p>
                   {t.name && (
                     <p className="truncate text-xs font-medium text-slate-300">{t.name}</p>
                   )}
                   <p className="truncate text-xs text-slate-400">
-                    <span aria-hidden="true">{getCategoryEmoji(t.type, t.category)} </span>
-                    {t.category} <span className="text-slate-600">&middot;</span> {t.date}
+                    {isTransfer ? (
+                      <>
+                        <span className="capitalize text-blue-400">{t.transferFrom}</span>
+                        <span className="text-slate-600"> → </span>
+                        <span className="capitalize text-emerald-400">{t.transferTo}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span aria-hidden="true">{getCategoryEmoji(t.type, t.category)} </span>
+                        {t.category} <span className="text-slate-600">&middot;</span> {t.date}
+                        {t.destination && (
+                          <>
+                            <span className="text-slate-600"> &middot; </span>
+                            <span className={`capitalize ${
+                              t.destination === "card" ? "text-blue-400" :
+                              t.destination === "cash" ? "text-amber-400" :
+                              "text-purple-400"
+                            }`}>{t.destination}</span>
+                          </>
+                        )}
+                      </>
+                    )}
                   </p>
                 </div>
 

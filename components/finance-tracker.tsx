@@ -12,6 +12,8 @@ import {
   getMonthKey,
   getPlanKey,
   type Transaction,
+  type TransactionDestination,
+  type TransactionType,
 } from "@/lib/finance"
 import { exportAllData, importDataFromFile } from "@/lib/data-transfer"
 import { FinanceHeader } from "@/components/finance-header"
@@ -32,6 +34,7 @@ type RecurringTemplate = {
   category: string
   type: "income" | "expense"
   name?: string
+  destination?: TransactionDestination
 }
 
 type QuickTemplate = {
@@ -57,11 +60,17 @@ export function FinanceTracker() {
   const [date, setDate] = useState<Date>(() => new Date())
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [plan, setPlan] = useState<number>(DEFAULT_PLAN)
+  const [card, setCard] = useState<number>(7000)
+  const [cash, setCash] = useState<number>(8000)
+  const [savings, setSavings] = useState<number>(50000)
   const [hydrated, setHydrated] = useState(false)
 
-  const [isIncome, setIsIncome] = useState(false)
+  const [transactionType, setTransactionType] = useState<TransactionType>("expense")
   const [amount, setAmount] = useState("")
   const [category, setCategory] = useState<string>(CATEGORIES.expense[0].name)
+  const [destination, setDestination] = useState<TransactionDestination>("card")
+  const [transferFrom, setTransferFrom] = useState<TransactionDestination>("card")
+  const [transferTo, setTransferTo] = useState<TransactionDestination>("cash")
   const [showHistory, setShowHistory] = useState(false)
   const [name, setName] = useState("")
   const [isRecurring, setIsRecurring] = useState(false)
@@ -69,7 +78,7 @@ export function FinanceTracker() {
   const [quickTemplates, setQuickTemplates] = useState<QuickTemplate[]>(DEFAULT_QUICK_TEMPLATES)
   const [currency, setCurrency] = useState<CurrencyCode>("UAH")
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [templatesOpen, setTemplatesOpen] = useState(false)
+  const [monthlySubsOpen, setMonthlySubsOpen] = useState(false)
 
   // FAB + sheet state
   const [sheetOpen, setSheetOpen] = useState(false)
@@ -80,6 +89,26 @@ export function FinanceTracker() {
   const monthKey = useMemo(() => getMonthKey(date), [date])
   const planKey = useMemo(() => getPlanKey(date), [date])
   const periodLabel = useMemo(() => formatPeriod(date), [date])
+
+  const BALANCES_KEY = "balances_v1"
+
+  // Load balances
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const raw = window.localStorage.getItem(BALANCES_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      setCard(parsed.card ?? 0)
+      setCash(parsed.cash ?? 0)
+      setSavings(parsed.savings ?? 0)
+    }
+  }, [])
+
+  // Persist balances
+  useEffect(() => {
+    if (!hydrated || typeof window === "undefined") return
+    window.localStorage.setItem(BALANCES_KEY, JSON.stringify({ card, cash, savings }))
+  }, [card, cash, savings, hydrated])
 
   // Load transactions + plan for the active month
   useEffect(() => {
@@ -109,6 +138,7 @@ export function FinanceTracker() {
           date: formatShortDate(new Date()),
           name: template.name,
           recurringId: template.id,
+          destination: template.destination ?? "card",
         } satisfies Transaction))
       if (generated.length > 0) nextTransactions = [...generated, ...nextTransactions]
     }
@@ -178,15 +208,48 @@ export function FinanceTracker() {
     setAmount(String(template.amount))
     setCategory(template.category)
     setName(template.label)
-    setIsIncome(false)
+    setTransactionType("expense")
+    setDestination("card")
   }
 
   const addTransaction = () => {
     const parsed = parseAmount(amount)
     if (!amount || Number.isNaN(parsed) || parsed <= 0) return
+    
+    // Handle transfers
+    if (transactionType === "transfer") {
+      if (transferFrom === transferTo) return
+      
+      // Subtract from source
+      if (transferFrom === "card") setCard((prev) => Math.max(0, prev - parsed))
+      else if (transferFrom === "cash") setCash((prev) => Math.max(0, prev - parsed))
+      else if (transferFrom === "savings") setSavings((prev) => Math.max(0, prev - parsed))
+      
+      // Add to destination
+      if (transferTo === "card") setCard((prev) => prev + parsed)
+      else if (transferTo === "cash") setCash((prev) => prev + parsed)
+      else if (transferTo === "savings") setSavings((prev) => prev + parsed)
+      
+      const newTx: Transaction = {
+        id: Date.now(),
+        amount: parsed,
+        category: "Transfer",
+        type: "transfer",
+        date: formatShortDate(new Date()),
+        name: name.trim() || undefined,
+        transferFrom,
+        transferTo,
+      }
+      setTransactions([newTx, ...transactions])
+      setAmount("")
+      setName("")
+      setSheetOpen(false)
+      return
+    }
+    
     let recurringId: string | undefined
     if (isRecurring) {
-      const recurringKey = `${isIncome ? "income" : "expense"}|${category}|${parsed}|${name.trim().toLowerCase()}`
+      const recurringKey = `${transactionType}|${category}|${parsed}|${name.trim().toLowerCase()}`
       const existing = recurringTemplates.find(
         (r) =>
           `${r.type}|${r.category}|${r.amount}|${(r.name ?? "").trim().toLowerCase()}` === recurringKey
@@ -199,8 +262,9 @@ export function FinanceTracker() {
           id: recurringId,
           amount: parsed,
           category,
-          type: isIncome ? "income" : "expense",
+          type: transactionType as "income" | "expense",
           name: name.trim() || undefined,
+          destination,
         }
         const nextRecurring = [...recurringTemplates, nextTemplate]
         setRecurringTemplates(nextRecurring)
@@ -213,12 +277,24 @@ export function FinanceTracker() {
       id: Date.now(),
       amount: parsed,
       category,
-      type: isIncome ? "income" : "expense",
+      type: transactionType,
       date: formatShortDate(new Date()),
       name: name.trim() || undefined,
       recurringId,
+      destination,
     }
     setTransactions([newTx, ...transactions])
+
+    // Adjust balances
+    if (transactionType === "income") {
+      if (destination === "card") setCard((prev) => prev + parsed)
+      else if (destination === "cash") setCash((prev) => prev + parsed)
+      else if (destination === "savings") setSavings((prev) => prev + parsed)
+    } else {
+      if (destination === "card") setCard((prev) => Math.max(0, prev - parsed))
+      else if (destination === "cash") setCash((prev) => Math.max(0, prev - parsed))
+    }
+
     setAmount("")
     setName("")
     setIsRecurring(false)
@@ -229,13 +305,64 @@ export function FinanceTracker() {
     if (editingId === null) return
     const parsed = parseAmount(amount)
     if (!amount || Number.isNaN(parsed) || parsed <= 0) return
-    setTransactions((prev) =>
-      prev.map((t) =>
-        t.id === editingId
-          ? { ...t, amount: parsed, category, type: isIncome ? "income" : "expense", name: name.trim() || undefined }
-          : t
+    
+    // Find old transaction to reverse its balance changes
+    const oldTx = transactions.find((t) => t.id === editingId)
+    if (oldTx) {
+      if (oldTx.type === "income") {
+        if (oldTx.destination === "card") setCard((prev) => Math.max(0, prev - oldTx.amount))
+        else if (oldTx.destination === "cash") setCash((prev) => Math.max(0, prev - oldTx.amount))
+        else if (oldTx.destination === "savings") setSavings((prev) => Math.max(0, prev - oldTx.amount))
+      } else if (oldTx.type === "expense") {
+        if (oldTx.destination === "card") setCard((prev) => prev + oldTx.amount)
+        else if (oldTx.destination === "cash") setCash((prev) => prev + oldTx.amount)
+      } else if (oldTx.type === "transfer") {
+        // Reverse transfer
+        if (oldTx.transferFrom === "card") setCard((prev) => prev + oldTx.amount)
+        else if (oldTx.transferFrom === "cash") setCash((prev) => prev + oldTx.amount)
+        else if (oldTx.transferFrom === "savings") setSavings((prev) => prev + oldTx.amount)
+        if (oldTx.transferTo === "card") setCard((prev) => Math.max(0, prev - oldTx.amount))
+        else if (oldTx.transferTo === "cash") setCash((prev) => Math.max(0, prev - oldTx.amount))
+        else if (oldTx.transferTo === "savings") setSavings((prev) => Math.max(0, prev - oldTx.amount))
+      }
+    }
+
+    // Handle transfer edits
+    if (transactionType === "transfer") {
+      setTransactions((prev) =>
+        prev.map((t) =>
+          t.id === editingId
+            ? { ...t, amount: parsed, category: "Transfer", type: "transfer" as const, name: name.trim() || undefined, transferFrom, transferTo }
+            : t
+        )
       )
-    )
+      // Apply new transfer
+      if (transferFrom === "card") setCard((prev) => Math.max(0, prev - parsed))
+      else if (transferFrom === "cash") setCash((prev) => Math.max(0, prev - parsed))
+      else if (transferFrom === "savings") setSavings((prev) => Math.max(0, prev - parsed))
+      if (transferTo === "card") setCard((prev) => prev + parsed)
+      else if (transferTo === "cash") setCash((prev) => prev + parsed)
+      else if (transferTo === "savings") setSavings((prev) => prev + parsed)
+    } else {
+      setTransactions((prev) =>
+        prev.map((t) =>
+          t.id === editingId
+            ? { ...t, amount: parsed, category, type: transactionType, name: name.trim() || undefined, destination }
+            : t
+        )
+      )
+
+      // Apply new balance changes
+      if (transactionType === "income") {
+        if (destination === "card") setCard((prev) => prev + parsed)
+        else if (destination === "cash") setCash((prev) => prev + parsed)
+        else if (destination === "savings") setSavings((prev) => prev + parsed)
+      } else {
+        if (destination === "card") setCard((prev) => Math.max(0, prev - parsed))
+        else if (destination === "cash") setCash((prev) => Math.max(0, prev - parsed))
+      }
+    }
+
     setEditingId(null)
     setAmount("")
     setName("")
@@ -248,7 +375,8 @@ export function FinanceTracker() {
     setAmount("")
     setName("")
     setIsRecurring(false)
-    setIsIncome(false)
+    setTransactionType("expense")
+    setDestination("card")
     setCategory(CATEGORIES.expense[0].name)
     setSheetOpen(false)
   }
@@ -257,13 +385,39 @@ export function FinanceTracker() {
     setEditingId(tx.id)
     setAmount(String(tx.amount))
     setName(tx.name ?? "")
-    setIsIncome(tx.type === "income")
-    setCategory(tx.category)
+    setTransactionType(tx.type)
+    if (tx.type === "transfer") {
+      setTransferFrom(tx.transferFrom ?? "card")
+      setTransferTo(tx.transferTo ?? "cash")
+    } else {
+      setDestination(tx.destination ?? "card")
+      setCategory(tx.category)
+    }
     setIsRecurring(Boolean(tx.recurringId))
     setSheetOpen(true)
   }
 
   const deleteTransaction = (id: number) => {
+    const tx = transactions.find((t) => t.id === id)
+    if (tx) {
+      // Reverse balance changes
+      if (tx.type === "income") {
+        if (tx.destination === "card") setCard((prev) => Math.max(0, prev - tx.amount))
+        else if (tx.destination === "cash") setCash((prev) => Math.max(0, prev - tx.amount))
+        else if (tx.destination === "savings") setSavings((prev) => Math.max(0, prev - tx.amount))
+      } else if (tx.type === "expense") {
+        if (tx.destination === "card") setCard((prev) => prev + tx.amount)
+        else if (tx.destination === "cash") setCash((prev) => prev + tx.amount)
+      } else if (tx.type === "transfer") {
+        // Reverse transfer
+        if (tx.transferFrom === "card") setCard((prev) => prev + tx.amount)
+        else if (tx.transferFrom === "cash") setCash((prev) => prev + tx.amount)
+        else if (tx.transferFrom === "savings") setSavings((prev) => prev + tx.amount)
+        if (tx.transferTo === "card") setCard((prev) => Math.max(0, prev - tx.amount))
+        else if (tx.transferTo === "cash") setCash((prev) => Math.max(0, prev - tx.amount))
+        else if (tx.transferTo === "savings") setSavings((prev) => Math.max(0, prev - tx.amount))
+      }
+    }
     setTransactions(transactions.filter((t) => t.id !== id))
     if (editingId === id) cancelEdit()
   }
@@ -280,7 +434,8 @@ export function FinanceTracker() {
     setAmount("")
     setName("")
     setIsRecurring(false)
-    setIsIncome(false)
+    setTransactionType("expense")
+    setDestination("card")
     setCategory(CATEGORIES.expense[0].name)
     setSheetOpen(true)
   }
@@ -312,8 +467,9 @@ export function FinanceTracker() {
         />
 
         <BalanceCard
-          plan={plan}
-          totalExpense={totalExpense}
+          card={card}
+          cash={cash}
+          savings={savings}
           currency={currency}
           onCurrencyChange={setCurrency}
         />
@@ -380,8 +536,8 @@ export function FinanceTracker() {
               </button>
 
               <TransactionForm
-                isIncome={isIncome}
-                setIsIncome={setIsIncome}
+                transactionType={transactionType}
+                setTransactionType={setTransactionType}
                 amount={amount}
                 setAmount={setAmount}
                 name={name}
@@ -393,6 +549,12 @@ export function FinanceTracker() {
                 onApplyTemplate={applyTemplate}
                 category={category}
                 setCategory={setCategory}
+                destination={destination}
+                setDestination={setDestination}
+                transferFrom={transferFrom}
+                setTransferFrom={setTransferFrom}
+                transferTo={transferTo}
+                setTransferTo={setTransferTo}
                 onAdd={editingId !== null ? updateTransaction : addTransaction}
                 onCancelEdit={cancelEdit}
                 isEditing={editingId !== null}
@@ -407,17 +569,24 @@ export function FinanceTracker() {
         open={settingsOpen}
         onClose={() => {
           setSettingsOpen(false)
-          setTemplatesOpen(false)
+          setMonthlySubsOpen(false)
         }}
         plan={plan}
         setPlan={setPlan}
+        card={card}
+        setCard={setCard}
+        cash={cash}
+        setCash={setCash}
+        savings={savings}
+        setSavings={setSavings}
         currency={currency}
         recurringTemplates={recurringTemplates}
-        onOpenTemplates={() => setTemplatesOpen(true)}
-        onCloseTemplates={() => setTemplatesOpen(false)}
+        setRecurringTemplates={setRecurringTemplates}
+        onOpenMonthlySubs={() => setMonthlySubsOpen(true)}
+        onCloseMonthlySubs={() => setMonthlySubsOpen(false)}
+        monthlySubsOpen={monthlySubsOpen}
         quickTemplates={quickTemplates}
         setQuickTemplates={setQuickTemplates}
-        templatesOpen={templatesOpen}
         onImportSuccess={() => {
           const savedTx = window.localStorage.getItem(monthKey)
           setTransactions(savedTx ? (JSON.parse(savedTx) as Transaction[]) : [])
@@ -435,13 +604,20 @@ function SettingsModal({
   onClose,
   plan,
   setPlan,
+  card,
+  setCard,
+  cash,
+  setCash,
+  savings,
+  setSavings,
   currency,
   recurringTemplates,
-  onOpenTemplates,
-  onCloseTemplates,
+  setRecurringTemplates,
+  onOpenMonthlySubs,
+  onCloseMonthlySubs,
   quickTemplates,
   setQuickTemplates,
-  templatesOpen,
+  monthlySubsOpen,
   onImportSuccess,
   onImportError,
 }: {
@@ -449,22 +625,37 @@ function SettingsModal({
   onClose: () => void
   plan: number
   setPlan: (value: number) => void
+  card: number
+  setCard: (value: number) => void
+  cash: number
+  setCash: (value: number) => void
+  savings: number
+  setSavings: (value: number) => void
   currency: CurrencyCode
   recurringTemplates: RecurringTemplate[]
-  onOpenTemplates: () => void
-  onCloseTemplates: () => void
+  setRecurringTemplates: Dispatch<SetStateAction<RecurringTemplate[]>>
+  onOpenMonthlySubs: () => void
+  onCloseMonthlySubs: () => void
   quickTemplates: QuickTemplate[]
   setQuickTemplates: Dispatch<SetStateAction<QuickTemplate[]>>
-  templatesOpen: boolean
+  monthlySubsOpen: boolean
   onImportSuccess: () => void
   onImportError: (message: string) => void
 }) {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [planDraft, setPlanDraft] = useState(String(plan))
+  const [cardDraft, setCardDraft] = useState(String(card))
+  const [cashDraft, setCashDraft] = useState(String(cash))
+  const [savingsDraft, setSavingsDraft] = useState(String(savings))
 
   useEffect(() => {
-    if (open) setPlanDraft(String(plan))
-  }, [open, plan])
+    if (open) {
+      setPlanDraft(String(plan))
+      setCardDraft(String(card))
+      setCashDraft(String(cash))
+      setSavingsDraft(String(savings))
+    }
+  }, [open, plan, card, cash, savings])
 
   const handleImportClick = () => fileInputRef.current?.click()
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -475,8 +666,14 @@ function SettingsModal({
   }
 
   const saveSettings = () => {
-    const parsed = Number(planDraft)
-    if (Number.isFinite(parsed) && parsed > 0) setPlan(parsed)
+    const parsedPlan = Number(planDraft)
+    if (Number.isFinite(parsedPlan) && parsedPlan > 0) setPlan(parsedPlan)
+    const parsedCard = Number(cardDraft)
+    if (Number.isFinite(parsedCard) && parsedCard >= 0) setCard(parsedCard)
+    const parsedCash = Number(cashDraft)
+    if (Number.isFinite(parsedCash) && parsedCash >= 0) setCash(parsedCash)
+    const parsedSavings = Number(savingsDraft)
+    if (Number.isFinite(parsedSavings) && parsedSavings >= 0) setSavings(parsedSavings)
     onClose()
   }
 
@@ -511,12 +708,12 @@ function SettingsModal({
 
             <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Settings</p>
 
-            {templatesOpen ? (
-              <TemplateManager
-                templates={quickTemplates}
-                setTemplates={setQuickTemplates}
+            {monthlySubsOpen ? (
+              <MonthlySubscriptionsManager
+                templates={recurringTemplates}
+                setTemplates={setRecurringTemplates}
                 currency={currency}
-                onDone={onCloseTemplates}
+                onDone={onCloseMonthlySubs}
               />
             ) : (
               <div className="mt-3 space-y-4">
@@ -531,12 +728,45 @@ function SettingsModal({
                   />
                 </label>
 
+                <div className="grid grid-cols-3 gap-3">
+                  <label className="space-y-1.5">
+                    <span className="text-xs text-slate-400">Card</span>
+                    <input
+                      value={cardDraft}
+                      onChange={(e) => setCardDraft(e.target.value)}
+                      type="text"
+                      inputMode="decimal"
+                      className="h-12 w-full rounded-xl border border-slate-800 bg-slate-900/60 px-3 text-white outline-none focus:border-blue-500"
+                    />
+                  </label>
+                  <label className="space-y-1.5">
+                    <span className="text-xs text-slate-400">Cash</span>
+                    <input
+                      value={cashDraft}
+                      onChange={(e) => setCashDraft(e.target.value)}
+                      type="text"
+                      inputMode="decimal"
+                      className="h-12 w-full rounded-xl border border-slate-800 bg-slate-900/60 px-3 text-white outline-none focus:border-blue-500"
+                    />
+                  </label>
+                  <label className="space-y-1.5">
+                    <span className="text-xs text-slate-400">Savings</span>
+                    <input
+                      value={savingsDraft}
+                      onChange={(e) => setSavingsDraft(e.target.value)}
+                      type="text"
+                      inputMode="decimal"
+                      className="h-12 w-full rounded-xl border border-slate-800 bg-slate-900/60 px-3 text-white outline-none focus:border-blue-500"
+                    />
+                  </label>
+                </div>
+
                 <button
                   type="button"
-                  onClick={onOpenTemplates}
+                  onClick={onOpenMonthlySubs}
                   className="mt-2 h-11 w-full rounded-xl border border-slate-700 bg-slate-900/50 text-sm font-semibold text-slate-200 transition-colors hover:border-slate-600"
                 >
-                  Manage Templates
+                  Manage Monthly Subscriptions
                 </button>
 
                 <div className="flex items-center justify-center gap-3">
@@ -678,6 +908,104 @@ function TemplateManager({
       </div>
       <p className="text-xs text-slate-500">
         Template amounts are stored in base ₴ and rendered in the selected currency.
+      </p>
+    </div>
+  )
+}
+
+function MonthlySubscriptionsManager({
+  templates,
+  setTemplates,
+  currency,
+  onDone,
+}: {
+  templates: RecurringTemplate[]
+  setTemplates: Dispatch<SetStateAction<RecurringTemplate[]>>
+  currency: CurrencyCode
+  onDone: () => void
+}) {
+  const updateTemplate = (id: string, patch: Partial<RecurringTemplate>) => {
+    setTemplates((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)))
+  }
+
+  const addTemplate = () => {
+    setTemplates((prev) => [
+      ...prev,
+      {
+        id: `${Date.now()}`,
+        name: "New subscription",
+        amount: 100,
+        category: "Personal",
+        type: "expense",
+        destination: "card",
+      },
+    ])
+  }
+
+  return (
+    <div className="mt-3 space-y-3">
+      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Monthly Subscriptions</p>
+      <div className="max-h-[46dvh] space-y-2 overflow-y-auto pr-1">
+        {templates.map((template) => (
+          <div key={template.id} className="rounded-2xl border border-purple-500/20 bg-purple-500/5 p-3">
+            <div className="space-y-2">
+              <input
+                type="text"
+                value={template.name ?? ""}
+                onChange={(e) => updateTemplate(template.id, { name: e.target.value || undefined })}
+                placeholder="Subscription name"
+                className="h-10 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm text-white placeholder:text-slate-500"
+              />
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={template.amount}
+                  onChange={(e) => {
+                    const n = Number(e.target.value)
+                    if (Number.isFinite(n)) updateTemplate(template.id, { amount: n })
+                  }}
+                  className="h-10 flex-1 rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm text-white"
+                />
+                <select
+                  value={template.destination ?? "card"}
+                  onChange={(e) => updateTemplate(template.id, { destination: e.target.value as TransactionDestination })}
+                  className="h-10 rounded-xl border border-slate-700 bg-slate-900 px-2 text-xs text-slate-300"
+                >
+                  <option value="card">Card</option>
+                  <option value="cash">Cash</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setTemplates((prev) => prev.filter((t) => t.id !== template.id))}
+                  className="rounded-xl border border-slate-700 p-2.5 text-slate-400 hover:text-rose-400"
+                  aria-label={`Delete subscription ${template.name}`}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={addTemplate}
+          className="h-10 rounded-xl border border-purple-500/30 bg-purple-500/10 text-sm font-medium text-purple-300 hover:bg-purple-500/20"
+        >
+          Add Subscription
+        </button>
+        <button
+          type="button"
+          onClick={onDone}
+          className="h-10 rounded-xl border border-slate-700 bg-slate-900/50 text-sm font-medium text-slate-200"
+        >
+          Done
+        </button>
+      </div>
+      <p className="text-xs text-slate-500">
+        These subscriptions auto-deduct monthly. Total: {formatUAH(templates.reduce((sum, t) => sum + t.amount, 0), undefined, currency)}
       </p>
     </div>
   )

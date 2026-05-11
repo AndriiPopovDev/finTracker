@@ -36,8 +36,9 @@ export const CATEGORIES: {
 
 export const COLORS = ["#10b981", "#3b82f6", "#8b5cf6", "#f43f5e", "#f59e0b", "#06b6d4", "#ec4899"]
 
-export type TransactionType = "income" | "expense"
+export type TransactionType = "income" | "expense" | "transfer"
 export type CurrencyCode = "UAH" | "USD" | "EUR"
+export type TransactionDestination = "card" | "cash" | "savings"
 
 export type Transaction = {
   id: number
@@ -47,6 +48,9 @@ export type Transaction = {
   date: string
   name?: string
   recurringId?: string
+  destination?: TransactionDestination
+  transferFrom?: TransactionDestination
+  transferTo?: TransactionDestination
 }
 
 export function getCategoryEmoji(type: TransactionType, name: string): string {
