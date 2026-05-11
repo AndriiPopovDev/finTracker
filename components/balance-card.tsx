@@ -1,4 +1,4 @@
-import { Repeat } from "lucide-react"
+import { Repeat, PiggyBank } from "lucide-react"
 import { formatUAH, type CurrencyCode } from "@/lib/finance"
 
 type Props = {
@@ -27,18 +27,18 @@ export function BalanceCard({ card, cash, savings, monthlyTotal, currency, onCur
       />
 
       <div className="relative">
-        <div className="flex items-start justify-between">
+        {/* Header with currency selector */}
+        <div className="flex items-start justify-between mb-4">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
               Global Balance
             </p>
-            <h2 className="mt-1.5 text-3xl font-semibold tracking-tight text-white">
+            <h2 className="mt-1 text-3xl font-semibold tracking-tight text-white">
               {formatUAH(globalBalance, undefined, currency)}
             </h2>
-            <p className="mt-1 text-[11px] font-medium text-slate-500">Card + Cash</p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             {([
               { code: "UAH", label: "₴" },
               { code: "USD", label: "$" },
@@ -48,10 +48,10 @@ export function BalanceCard({ card, cash, savings, monthlyTotal, currency, onCur
                 key={item.code}
                 type="button"
                 onClick={() => onCurrencyChange(item.code)}
-                className={`flex h-8 w-8 items-center justify-center rounded-full border text-xs font-semibold transition-all active:scale-95 ${
+                className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold transition-all active:scale-95 ${
                   currency === item.code
-                    ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400"
-                    : "border-slate-800/50 bg-slate-900/50 text-slate-500 hover:text-slate-300"
+                    ? "bg-emerald-500/15 text-emerald-400"
+                    : "text-slate-500 hover:text-slate-300"
                 }`}
                 aria-label={`Switch currency to ${item.code}`}
                 aria-pressed={currency === item.code}
@@ -62,38 +62,44 @@ export function BalanceCard({ card, cash, savings, monthlyTotal, currency, onCur
           </div>
         </div>
 
-        <div className="mt-3 grid grid-cols-3 gap-2">
-          <div className="rounded-lg border border-slate-800/40 bg-slate-900/40 px-2.5 py-2">
-            <p className="text-[10px] font-semibold text-slate-500">Card</p>
+        {/* Account balances */}
+        <div className="grid grid-cols-3 gap-2 mb-3">
+          <div className="rounded-lg bg-slate-900/40 px-2.5 py-2">
+            <p className="text-[10px] font-medium text-slate-500">Card</p>
             <p className="mt-0.5 text-sm font-semibold text-slate-200">{formatUAH(card, undefined, currency)}</p>
           </div>
-          <div className="rounded-lg border border-slate-800/40 bg-slate-900/40 px-2.5 py-2">
-            <p className="text-[10px] font-semibold text-slate-500">Cash</p>
+          <div className="rounded-lg bg-slate-900/40 px-2.5 py-2">
+            <p className="text-[10px] font-medium text-slate-500">Cash</p>
             <p className="mt-0.5 text-sm font-semibold text-slate-200">{formatUAH(cash, undefined, currency)}</p>
           </div>
-          <div className="rounded-lg border border-slate-800/40 bg-slate-900/40 px-2.5 py-2">
+          <div className="rounded-lg bg-slate-900/40 px-2.5 py-2">
             <div className="flex items-center gap-1">
               <Repeat className="h-3 w-3 text-purple-500/60" />
-              <p className="text-[10px] font-semibold text-slate-500">Monthly</p>
+              <p className="text-[10px] font-medium text-slate-500">Monthly</p>
             </div>
             <p className="mt-0.5 text-sm font-semibold text-purple-400/80">{formatUAH(monthlyTotal, undefined, currency)}</p>
           </div>
         </div>
 
-        <div className="mt-2.5 rounded-lg border border-slate-800/30 bg-slate-900/20 px-3 py-2.5">
-          <div className="flex items-center justify-between text-xs">
-            <span className="font-medium text-slate-500">Savings</span>
-            <span className="font-semibold text-slate-300">{formatUAH(savings, undefined, currency)}</span>
+        {/* Savings - separated section */}
+        <div className="rounded-lg border border-slate-800/30 bg-slate-900/30 px-3 py-2.5 mb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <PiggyBank className="h-3.5 w-3.5 text-slate-500" />
+              <span className="text-xs font-medium text-slate-500">Savings</span>
+            </div>
+            <span className="text-sm font-semibold text-slate-300">{formatUAH(savings, undefined, currency)}</span>
           </div>
-          <p className="mt-0.5 text-[10px] text-slate-600">Excluded from global balance</p>
         </div>
 
+        {/* Remaining after monthly */}
         {monthlyTotal > 0 && (
-          <div className="mt-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-medium text-slate-500">Available</span>
-              <span className="font-semibold text-emerald-400">{formatUAH(remainingBalance, undefined, currency)}</span>
+          <div className="rounded-lg border border-emerald-500/15 bg-emerald-500/5 px-3 py-2.5">
+            <div className="flex items-center justify-between mb-0.5">
+              <span className="text-xs font-medium text-slate-500">Available after monthly</span>
+              <span className="text-sm font-semibold text-emerald-400">{formatUAH(remainingBalance, undefined, currency)}</span>
             </div>
+            <p className="text-[10px] text-slate-600">Global balance minus recurring expenses</p>
           </div>
         )}
       </div>

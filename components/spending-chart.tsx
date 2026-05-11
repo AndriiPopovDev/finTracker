@@ -18,8 +18,8 @@ export function SpendingChart({ data, totalExpense, currency, forecastValue }: P
   const forecastClass = forecastValue >= 0 ? "text-emerald-500" : "text-rose-500"
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-slate-800/40 bg-slate-950 p-4">
-      <div className="flex items-center gap-2">
+    <div className="relative overflow-hidden rounded-2xl bg-slate-950 p-4">
+      <div className="flex items-center gap-2 mb-3">
         <PieIcon className="h-4 w-4 text-blue-400/80" aria-hidden="true" />
         <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
           Spending Breakdown
@@ -28,7 +28,7 @@ export function SpendingChart({ data, totalExpense, currency, forecastValue }: P
 
       {hasData ? (
         <>
-          <div className="mt-4 h-56">
+          <div className="mt-2 h-52">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -46,7 +46,7 @@ export function SpendingChart({ data, totalExpense, currency, forecastValue }: P
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <ul className="mt-4 space-y-3">
+          <ul className="mt-3 space-y-2.5">
             {data.map((d, i) => {
               const pct = totalExpense > 0 ? (d.value / totalExpense) * 100 : 0
               const catInfo = CATEGORIES.expense.find((c) => c.name === d.name)
@@ -65,7 +65,7 @@ export function SpendingChart({ data, totalExpense, currency, forecastValue }: P
                     </span>
                     <div className="flex items-baseline gap-2 text-right flex-shrink-0">
                       <span className="font-semibold text-slate-200">{formatUAH(d.value, undefined, currency)}</span>
-                      <span className="text-[11px] font-medium text-slate-500 w-8">{Math.round(pct)}%</span>
+                      <span className="text-[10px] font-medium text-slate-500 w-8">{Math.round(pct)}%</span>
                     </div>
                   </div>
                   <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800/50">
@@ -85,11 +85,12 @@ export function SpendingChart({ data, totalExpense, currency, forecastValue }: P
           No expenses for this period yet.
         </p>
       )}
-      <p className="mt-4 text-sm text-slate-500">
-        Based on your current habits, you will have{" "}
-        <span className={`align-baseline font-semibold ${forecastClass}`}>{formatUAH(forecastValue, undefined, currency)}</span>{" "}
-        left by the end of the month.
-      </p>
+      <div className="mt-3 pt-3 border-t border-slate-800/30">
+        <p className="text-xs text-slate-500">
+          Projected month-end balance:{" "}
+          <span className={`font-semibold ${forecastClass}`}>{formatUAH(forecastValue, undefined, currency)}</span>
+        </p>
+      </div>
     </div>
   )
 }

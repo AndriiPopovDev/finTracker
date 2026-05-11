@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { CircleArrowDown as ArrowDownCircle, CircleArrowUp as ArrowUpCircle, ArrowLeftRight, Repeat, Pencil, Trash2, ChevronDown } from "lucide-react"
 import { formatUAH, getCategoryEmoji, type CurrencyCode, type Transaction } from "@/lib/finance"
 
@@ -14,6 +14,36 @@ type Props = {
 
 const VISIBLE_COUNT = 3
 const EXPANDED_COUNT = 5
+
+function getDateGroup(dateStr: string): string {
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const txDate = new Date(dateStr.split('.').reverse().join('-'))
+  const txDay = new Date(txDate.getFullYear(), txDate.getMonth(), txDate.getDate())
+  
+  const diffMs = today.getTime() - txDay.getTime()
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  
+  if (diffDays === 0) return "Today"
+  if (diffDays === 1) return "Yesterday"
+  if (diffDays < 7) return "This Week"
+  if (diffDays < 14) return "Last Week"
+  return dateStr
+}
+
+function groupTransactionsByDate(transactions: Transaction[]): Map<string, Transaction[]> {
+  const grouped = new Map<string, Transaction[]>()
+  
+  transactions.forEach(tx => {
+    const group = getDateGroup(tx.date)
+    if (!grouped.has(group)) {
+      grouped.set(group, [])
+    }
+    grouped.get(group)!.push(tx)
+  })
+  
+  return grouped
+}
 
 export function TransactionList({ transactions, periodLabel, onDelete, onEdit, currency }: Props) {
   const [visibleCount, setVisibleCount] = useState(VISIBLE_COUNT)
@@ -29,10 +59,31 @@ export function TransactionList({ transactions, periodLabel, onDelete, onEdit, c
     setVisibleCount(VISIBLE_COUNT)
   }
 
+  const groupedTransactions = useMemo(() => groupTransactionsByDate(transactions), [transactions])
+  const visibleGroups = useMemo(() => {
+    const result = new Map<string, Transaction[]>()
+    let count = 0
+    
+    for (const [group, txs] of groupedTransactions) {
+      const remaining = visibleCount - count
+      if (remaining <= 0) break
+      
+      if (txs.length <= remaining) {
+        result.set(group, txs)
+        count += txs.length
+      } else {
+        result.set(group, txs.slice(0, remaining))
+        count += remaining
+      }
+    }
+    
+    return result
+  }, [groupedTransactions, visibleCount])
+
   return (
     <div className="space-y-3">
-      <h3 className="px-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-        Transactions for {periodLabel}
+      <h3 className="px-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-2">
+        Transactions
       </h3>
 
       {transactions.length === 0 ? (
@@ -41,15 +92,21 @@ export function TransactionList({ transactions, periodLabel, onDelete, onEdit, c
         </div>
       ) : (
         <>
-          <ul className="space-y-2">
-            {visibleTransactions.map((t) => {
+          <div className="space-y-3">
+            {Array.from(visibleGroups.entries()).map(([group, txs]) => (
+              <div key={group}>
+                <p className="px-1 mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+                  {group}
+                </p>
+                <ul className="space-y-1.5">
+                  {txs.map((t) => {
             const isTransfer = t.type === "transfer"
             const signedAmount = t.type === "income" ? Math.abs(t.amount) : t.type === "expense" ? -Math.abs(t.amount) : 0
             const isIncome = signedAmount > 0
             return (
-              <li
+              <div
                 key={t.id}
-                className="flex items-center gap-2.5 rounded-xl border border-slate-800/40 bg-slate-950/40 px-3 py-2.5"
+                className="flex items-center gap-2.5 rounded-xl bg-slate-950/40 px-3 py-2.5 min-h-[56px]"
               >
                 <span
                   className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border ${
@@ -118,23 +175,26 @@ export function TransactionList({ transactions, periodLabel, onDelete, onEdit, c
                   type="button"
                   onClick={() => onEdit(t)}
                   aria-label={`Edit ${t.category} transaction`}
-                  className="shrink-0 rounded-lg p-1.5 text-slate-600 transition-colors hover:bg-slate-800/40 hover:text-slate-300 active:scale-95"
+                  className="shrink-0 rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-800/40 hover:text-slate-300 active:scale-95 min-w-[36px] min-h-[36px] flex items-center justify-center"
                 >
-                  <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                  <Pencil className="h-4 w-4" aria-hidden="true" />
                 </button>
 
                 <button
                   type="button"
                   onClick={() => onDelete(t.id)}
                   aria-label={`Delete ${t.category} transaction`}
-                  className="shrink-0 rounded-lg p-1.5 text-slate-600 transition-colors hover:bg-slate-800/40 hover:text-rose-400 active:scale-95"
+                  className="shrink-0 rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-800/40 hover:text-rose-400 active:scale-95 min-w-[36px] min-h-[36px] flex items-center justify-center"
                 >
-                  <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
                 </button>
-              </li>
+              </div>
             )
-          })}
-          </ul>
+                  })}
+                </ul>
+              </div>
+            ))}
+          </div>
 
           {(hasMore || visibleCount > VISIBLE_COUNT) && (
             <button

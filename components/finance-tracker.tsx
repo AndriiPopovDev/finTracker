@@ -64,6 +64,8 @@ export function FinanceTracker() {
   const [cash, setCash] = useState<number>(0)
   const [savings, setSavings] = useState<number>(0)
   const [hydrated, setHydrated] = useState(false)
+  const [fabVisible, setFabVisible] = useState(true)
+  const lastScrollY = useRef(0)
 
   const [transactionType, setTransactionType] = useState<TransactionType>("expense")
   const [amount, setAmount] = useState("")
@@ -180,6 +182,32 @@ export function FinanceTracker() {
     if (!hydrated || typeof window === "undefined") return
     window.localStorage.setItem(QUICK_TEMPLATES_KEY, JSON.stringify(quickTemplates))
   }, [quickTemplates, hydrated])
+
+  // FAB auto-hide on scroll
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    
+    let ticking = false
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentScrollY = window.scrollY
+          const scrollingDown = currentScrollY > lastScrollY.current && currentScrollY > 100
+          const scrollingUp = currentScrollY < lastScrollY.current
+          
+          if (scrollingDown) setFabVisible(false)
+          if (scrollingUp) setFabVisible(true)
+          
+          lastScrollY.current = currentScrollY
+          ticking = false
+        })
+        ticking = true
+      }
+    }
+    
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   const totalIncome = transactions
     .filter((t) => t.type === "income")
@@ -459,7 +487,7 @@ export function FinanceTracker() {
         className="pointer-events-none absolute bottom-0 -right-32 h-80 w-80 rounded-full bg-rose-600/10 blur-3xl"
       />
 
-      <div className="relative mx-auto w-full max-w-md px-4 pb-24 pt-3 space-y-5">
+      <div className="relative mx-auto w-full max-w-md px-4 pb-28 pt-3 space-y-4">
         <FinanceHeader
           periodLabel={periodLabel}
           currentDate={date}
@@ -494,14 +522,21 @@ export function FinanceTracker() {
       </div>
 
       {/* FAB */}
-      <button
+      <motion.button
         type="button"
         onClick={openSheetForNew}
         aria-label="Add transaction"
-        className="fixed bottom-6 right-6 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-rose-500 to-rose-700 text-white shadow-xl shadow-rose-600/50 transition-transform hover:scale-110 active:scale-95"
+        initial={false}
+        animate={{ 
+          y: fabVisible ? 0 : 100,
+          opacity: fabVisible ? 1 : 0,
+          pointerEvents: fabVisible ? "auto" : "none"
+        }}
+        transition={{ duration: 0.2, ease: "easeInOut" }}
+        className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-4 left-4 max-w-md mx-auto z-30 flex h-14 items-center justify-center rounded-full bg-rose-600 text-white shadow-lg shadow-rose-600/30 active:scale-95"
       >
         <Plus className="h-6 w-6" aria-hidden="true" />
-      </button>
+      </motion.button>
 
       {/* Bottom Sheet / Modal */}
       <AnimatePresence>
