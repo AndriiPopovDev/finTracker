@@ -31,13 +31,13 @@ export function TransactionList({ transactions, periodLabel, onDelete, onEdit, c
 
   return (
     <div className="space-y-3">
-      <h3 className="px-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+      <h3 className="px-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
         Transactions for {periodLabel}
       </h3>
 
       {transactions.length === 0 ? (
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-6 text-center text-sm text-slate-500">
-          No transactions for this period yet.
+        <div className="rounded-xl border border-slate-800/40 bg-slate-950/40 py-8 text-center text-sm text-slate-500">
+          No transactions yet
         </div>
       ) : (
         <>
@@ -49,20 +49,20 @@ export function TransactionList({ transactions, periodLabel, onDelete, onEdit, c
             return (
               <li
                 key={t.id}
-                className="flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900/40 p-3"
+                className="flex items-center gap-2.5 rounded-xl border border-slate-800/40 bg-slate-950/40 px-3 py-2.5"
               >
                 <span
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border ${
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border ${
                     isTransfer
-                      ? "border-blue-500/30 bg-blue-500/10 text-blue-400"
+                      ? "border-blue-500/15 bg-blue-500/3 text-blue-400/80"
                       : isIncome
-                      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                      : "border-rose-500/30 bg-rose-500/10 text-rose-400"
+                      ? "border-emerald-500/15 bg-emerald-500/3 text-emerald-400/80"
+                      : "border-rose-500/15 bg-rose-500/3 text-rose-400/80"
                   }`}
                   aria-hidden="true"
                 >
                   {t.recurringId ? (
-                    <Repeat className="h-5 w-5 text-purple-400" />
+                    <Repeat className="h-5 w-5 text-purple-400/90" />
                   ) : isTransfer ? (
                     <ArrowLeftRight className="h-5 w-5" />
                   ) : isIncome ? (
@@ -74,9 +74,9 @@ export function TransactionList({ transactions, periodLabel, onDelete, onEdit, c
 
                 <div className="min-w-0 flex-1">
                   <p
-                    className={`text-base font-medium ${
+                    className={`text-sm font-semibold ${
                       isTransfer ? "text-blue-400" :
-                      signedAmount > 0 ? "text-emerald-500" : "text-rose-500"
+                      signedAmount > 0 ? "text-emerald-400" : "text-rose-400"
                     }`}
                   >
                     {isTransfer ? (
@@ -86,14 +86,14 @@ export function TransactionList({ transactions, periodLabel, onDelete, onEdit, c
                     )}
                   </p>
                   {t.name && (
-                    <p className="truncate text-xs font-medium text-slate-300">{t.name}</p>
+                    <p className="truncate text-xs font-medium text-slate-400">{t.name}</p>
                   )}
-                  <p className="truncate text-xs text-slate-400">
+                  <p className="truncate text-xs text-slate-500">
                     {isTransfer ? (
                       <>
-                        <span className="capitalize text-blue-400">{t.transferFrom}</span>
+                        <span className="capitalize text-blue-400/90">{t.transferFrom}</span>
                         <span className="text-slate-600"> → </span>
-                        <span className="capitalize text-emerald-400">{t.transferTo}</span>
+                        <span className="capitalize text-emerald-400/90">{t.transferTo}</span>
                       </>
                     ) : (
                       <>
@@ -103,9 +103,9 @@ export function TransactionList({ transactions, periodLabel, onDelete, onEdit, c
                           <>
                             <span className="text-slate-600"> &middot; </span>
                             <span className={`capitalize ${
-                              t.destination === "card" ? "text-blue-400" :
-                              t.destination === "cash" ? "text-amber-400" :
-                              "text-purple-400"
+                              t.destination === "card" ? "text-blue-400/90" :
+                              t.destination === "cash" ? "text-amber-400/90" :
+                              "text-purple-400/90"
                             }`}>{t.destination}</span>
                           </>
                         )}
@@ -118,18 +118,18 @@ export function TransactionList({ transactions, periodLabel, onDelete, onEdit, c
                   type="button"
                   onClick={() => onEdit(t)}
                   aria-label={`Edit ${t.category} transaction`}
-                  className="shrink-0 rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-800 hover:text-blue-400"
+                  className="shrink-0 rounded-lg p-1.5 text-slate-600 transition-colors hover:bg-slate-800/40 hover:text-slate-300 active:scale-95"
                 >
-                  <Pencil className="h-4 w-4" aria-hidden="true" />
+                  <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                 </button>
 
                 <button
                   type="button"
                   onClick={() => onDelete(t.id)}
                   aria-label={`Delete ${t.category} transaction`}
-                  className="shrink-0 rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-800 hover:text-rose-400"
+                  className="shrink-0 rounded-lg p-1.5 text-slate-600 transition-colors hover:bg-slate-800/40 hover:text-rose-400 active:scale-95"
                 >
-                  <Trash2 className="h-4 w-4" aria-hidden="true" />
+                  <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                 </button>
               </li>
             )
@@ -140,7 +140,7 @@ export function TransactionList({ transactions, periodLabel, onDelete, onEdit, c
             <button
               type="button"
               onClick={visibleCount >= transactions.length ? handleShowLess : handleShowMore}
-              className="mx-auto mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl border border-slate-700/50 bg-slate-900/60 py-2.5 text-xs font-semibold text-slate-400 transition-all hover:border-blue-500/40 hover:bg-slate-800 hover:text-blue-400 active:scale-[0.98]"
+              className="mx-auto mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl border border-slate-800/40 bg-slate-950/40 py-2.5 text-xs font-medium text-slate-500 transition-all hover:border-slate-700/50 hover:bg-slate-900/40 hover:text-slate-400 active:scale-[0.98]"
             >
               <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${visibleCount >= transactions.length ? "rotate-180" : ""}`} />
               {visibleCount >= transactions.length ? "Show less" : `${remainingCount} more`}

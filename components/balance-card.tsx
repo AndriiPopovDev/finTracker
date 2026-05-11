@@ -15,27 +15,27 @@ export function BalanceCard({ card, cash, savings, monthlyTotal, currency, onCur
   const remainingBalance = globalBalance - monthlyTotal
 
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-blue-500/20 bg-gradient-to-br from-blue-950 via-slate-900 to-slate-950 p-5 shadow-2xl shadow-blue-950/40">
-      {/* gradient glow - enlarged and softened for mobile */}
+    <div className="relative overflow-hidden rounded-2xl border border-slate-800/40 bg-slate-950 p-4">
+      {/* Subtle ambient glow - reduced intensity */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-blue-500/10 blur-[100px]"
+        className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-blue-500/3 blur-[40px]"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -bottom-40 -left-28 h-96 w-96 rounded-full bg-cyan-500/5 blur-[140px]"
+        className="pointer-events-none absolute -bottom-16 -left-12 h-24 w-24 rounded-full bg-cyan-500/2 blur-[35px]"
       />
 
       <div className="relative">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
               Global Balance
             </p>
-            <h2 className="mt-2 text-4xl font-medium tracking-tight text-emerald-400">
+            <h2 className="mt-1.5 text-3xl font-semibold tracking-tight text-white">
               {formatUAH(globalBalance, undefined, currency)}
             </h2>
-            <p className="mt-1 text-xs text-slate-400">Card + Cash</p>
+            <p className="mt-1 text-[11px] font-medium text-slate-500">Card + Cash</p>
           </div>
 
           <div className="flex items-center gap-2">
@@ -48,10 +48,10 @@ export function BalanceCard({ card, cash, savings, monthlyTotal, currency, onCur
                 key={item.code}
                 type="button"
                 onClick={() => onCurrencyChange(item.code)}
-                className={`flex h-8 w-8 items-center justify-center rounded-full border text-xs font-semibold transition-all ${
+                className={`flex h-8 w-8 items-center justify-center rounded-full border text-xs font-semibold transition-all active:scale-95 ${
                   currency === item.code
-                    ? "border-emerald-400/60 bg-emerald-500/15 text-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.22)]"
-                    : "border-slate-700 bg-slate-900/70 text-slate-400 hover:text-slate-200"
+                    ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400"
+                    : "border-slate-800/50 bg-slate-900/50 text-slate-500 hover:text-slate-300"
                 }`}
                 aria-label={`Switch currency to ${item.code}`}
                 aria-pressed={currency === item.code}
@@ -62,37 +62,37 @@ export function BalanceCard({ card, cash, savings, monthlyTotal, currency, onCur
           </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-3 gap-2">
-          <div className="rounded-xl border border-slate-800/60 bg-slate-900/40 p-2.5">
-            <p className="text-[9px] font-medium uppercase tracking-wider text-slate-500">Card</p>
-            <p className="mt-1 text-sm font-medium text-slate-200">{formatUAH(card, undefined, currency)}</p>
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          <div className="rounded-lg border border-slate-800/40 bg-slate-900/40 px-2.5 py-2">
+            <p className="text-[10px] font-semibold text-slate-500">Card</p>
+            <p className="mt-0.5 text-sm font-semibold text-slate-200">{formatUAH(card, undefined, currency)}</p>
           </div>
-          <div className="rounded-xl border border-slate-800/60 bg-slate-900/40 p-2.5">
-            <p className="text-[9px] font-medium uppercase tracking-wider text-slate-500">Cash</p>
-            <p className="mt-1 text-sm font-medium text-slate-200">{formatUAH(cash, undefined, currency)}</p>
+          <div className="rounded-lg border border-slate-800/40 bg-slate-900/40 px-2.5 py-2">
+            <p className="text-[10px] font-semibold text-slate-500">Cash</p>
+            <p className="mt-0.5 text-sm font-semibold text-slate-200">{formatUAH(cash, undefined, currency)}</p>
           </div>
-          <div className="rounded-xl border border-purple-500/20 bg-purple-500/5 p-2.5">
+          <div className="rounded-lg border border-slate-800/40 bg-slate-900/40 px-2.5 py-2">
             <div className="flex items-center gap-1">
-              <Repeat className="h-3 w-3 text-purple-400" />
-              <p className="text-[9px] font-medium uppercase tracking-wider text-purple-400/80">Monthly</p>
+              <Repeat className="h-3 w-3 text-purple-500/60" />
+              <p className="text-[10px] font-semibold text-slate-500">Monthly</p>
             </div>
-            <p className="mt-1 text-sm font-medium text-purple-300">{formatUAH(monthlyTotal, undefined, currency)}</p>
+            <p className="mt-0.5 text-sm font-semibold text-purple-400/80">{formatUAH(monthlyTotal, undefined, currency)}</p>
           </div>
         </div>
 
-        <div className="mt-3 rounded-xl border border-blue-500/10 bg-blue-500/5 p-3">
-          <div className="flex items-center justify-between text-xs text-slate-400">
-            <span className="font-medium">Savings</span>
-            <span className="text-slate-300">{formatUAH(savings, undefined, currency)}</span>
+        <div className="mt-2.5 rounded-lg border border-slate-800/30 bg-slate-900/20 px-3 py-2.5">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-medium text-slate-500">Savings</span>
+            <span className="font-semibold text-slate-300">{formatUAH(savings, undefined, currency)}</span>
           </div>
-          <p className="mt-0.5 text-[10px] text-slate-500">Not included in global balance</p>
+          <p className="mt-0.5 text-[10px] text-slate-600">Excluded from global balance</p>
         </div>
 
         {monthlyTotal > 0 && (
-          <div className="mt-2 rounded-xl border border-emerald-500/10 bg-emerald-500/5 p-2.5">
-            <div className="flex items-center justify-between text-xs text-slate-400">
-              <span className="font-medium">Remaining (after monthly)</span>
-              <span className="font-medium text-emerald-400">{formatUAH(remainingBalance, undefined, currency)}</span>
+          <div className="mt-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-medium text-slate-500">Available</span>
+              <span className="font-semibold text-emerald-400">{formatUAH(remainingBalance, undefined, currency)}</span>
             </div>
           </div>
         )}

@@ -12,36 +12,36 @@ export function SummaryCards({ totalIncome, totalExpense, currency }: Props) {
   const expenseValue = -Math.abs(totalExpense)
 
   return (
-    <div className="grid grid-cols-2 gap-3">
-      <div className="relative overflow-hidden rounded-2xl border border-emerald-500/15 bg-gradient-to-br from-emerald-500/10 via-slate-900/60 to-slate-900/40 p-4 shadow-lg shadow-emerald-950/20">
+    <div className="grid grid-cols-2 gap-2.5">
+      <div className="relative overflow-hidden rounded-xl border border-slate-800/40 bg-slate-950 p-3.5">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -right-16 -top-16 h-32 w-32 rounded-full bg-emerald-500/10 blur-[80px]"
+          className="pointer-events-none absolute -right-10 -top-10 h-20 w-20 rounded-full bg-emerald-500/3 blur-[30px]"
         />
-        <div className="relative flex items-center gap-2 text-slate-300">
-          <ArrowUpCircle className="h-4 w-4 text-emerald-400" aria-hidden="true" />
-          <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
+        <div className="relative flex items-center gap-1.5">
+          <ArrowUpCircle className="h-4 w-4 text-emerald-500/70" aria-hidden="true" />
+          <span className="text-[11px] font-semibold text-slate-500">
             Income
           </span>
         </div>
-        <p className={`relative mt-3 text-xl font-extrabold ${incomeValue > 0 ? "text-emerald-500" : "text-rose-500"}`}>
-          {formatUAH(Math.abs(totalIncome), incomeValue > 0 ? "plus" : "minus", currency)}
+        <p className="relative mt-2 text-lg font-semibold text-emerald-400">
+          {formatUAH(Math.abs(totalIncome), "plus", currency)}
         </p>
       </div>
 
-      <div className="relative overflow-hidden rounded-2xl border border-rose-500/15 bg-gradient-to-br from-rose-500/10 via-slate-900/60 to-slate-900/40 p-4 shadow-lg shadow-rose-950/20">
+      <div className="relative overflow-hidden rounded-xl border border-slate-800/40 bg-slate-950 p-3.5">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -right-16 -top-16 h-32 w-32 rounded-full bg-rose-500/10 blur-[80px]"
+          className="pointer-events-none absolute -right-10 -top-10 h-20 w-20 rounded-full bg-rose-500/3 blur-[30px]"
         />
-        <div className="relative flex items-center gap-2 text-slate-300">
-          <ArrowDownCircle className="h-4 w-4 text-rose-400" aria-hidden="true" />
-          <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
+        <div className="relative flex items-center gap-1.5">
+          <ArrowDownCircle className="h-4 w-4 text-rose-500/70" aria-hidden="true" />
+          <span className="text-[11px] font-semibold text-slate-500">
             Expenses
           </span>
         </div>
-        <p className={`relative mt-3 text-xl font-extrabold ${expenseValue > 0 ? "text-emerald-500" : "text-rose-500"}`}>
-          {formatUAH(Math.abs(totalExpense), expenseValue > 0 ? "plus" : "minus", currency)}
+        <p className="relative mt-2 text-lg font-semibold text-rose-400">
+          {formatUAH(Math.abs(totalExpense), "minus", currency)}
         </p>
       </div>
     </div>

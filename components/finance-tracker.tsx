@@ -524,10 +524,10 @@ export function FinanceTracker() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", stiffness: 360, damping: 32, mass: 0.8 }}
-              className="fixed inset-x-0 bottom-10 z-50 mx-auto w-full max-w-md max-h-[68dvh] overflow-visible rounded-3xl border border-slate-700 bg-slate-950/98 px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-2 shadow-2xl shadow-black/60 backdrop-blur-xl"
+              className="fixed inset-x-0 bottom-10 z-50 mx-auto w-full max-w-md max-h-[68dvh] overflow-visible rounded-2xl border border-slate-800/50 bg-slate-950/95 px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-2 shadow-xl shadow-black/40 backdrop-blur-xl"
             >
               {/* Drag handle */}
-              <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-slate-700" aria-hidden="true" />
+              <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-slate-800" aria-hidden="true" />
 
               {/* Close button */}
               <button
@@ -698,9 +698,9 @@ function SettingsModal({
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", stiffness: 360, damping: 32, mass: 0.8 }}
-            className="fixed inset-x-0 bottom-0 z-[60] mx-auto w-full max-w-md rounded-t-3xl border border-slate-700 bg-slate-950/98 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 shadow-2xl shadow-black/60 backdrop-blur-xl"
+            className="fixed inset-x-0 bottom-0 z-[60] mx-auto w-full max-w-md rounded-t-2xl border border-slate-800/50 bg-slate-950/95 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 shadow-xl shadow-black/40 backdrop-blur-xl"
           >
-            <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-slate-700" aria-hidden="true" />
+            <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-slate-800" aria-hidden="true" />
             <button
               type="button"
               onClick={onClose}
@@ -768,7 +768,7 @@ function SettingsModal({
                 <button
                   type="button"
                   onClick={onOpenMonthlySubs}
-                  className="mt-2 h-11 w-full rounded-xl border border-slate-700 bg-slate-900/50 text-sm font-semibold text-slate-200 transition-colors hover:border-slate-600"
+                  className="mt-2 h-11 w-full rounded-xl border border-slate-800/50 bg-slate-900/30 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-700/50 hover:bg-slate-900/40"
                 >
                   Manage Monthly Subscriptions
                 </button>
@@ -777,7 +777,7 @@ function SettingsModal({
                   <button
                     type="button"
                     onClick={handleImportClick}
-                    className="rounded-xl border border-slate-700 bg-slate-900/60 p-3 text-slate-300 transition-colors hover:text-white"
+                    className="rounded-xl border border-slate-800/50 bg-slate-900/30 p-3 text-slate-400 transition-colors hover:border-slate-700/50 hover:text-slate-300"
                     aria-label="Import backup JSON"
                   >
                     <Download className="h-4 w-4" />
@@ -785,7 +785,7 @@ function SettingsModal({
                   <button
                     type="button"
                     onClick={exportAllData}
-                    className="rounded-xl border border-slate-700 bg-slate-900/60 p-3 text-slate-300 transition-colors hover:text-white"
+                    className="rounded-xl border border-slate-800/50 bg-slate-900/30 p-3 text-slate-400 transition-colors hover:border-slate-700/50 hover:text-slate-300"
                     aria-label="Export backup JSON"
                   >
                     <Upload className="h-4 w-4" />
@@ -996,7 +996,7 @@ function MonthlySubscriptionsManager({
         <button
           type="button"
           onClick={addTemplate}
-          className="h-10 rounded-xl border border-purple-500/30 bg-purple-500/10 text-sm font-medium text-purple-300 hover:bg-purple-500/20"
+          className="h-10 rounded-xl border border-purple-500/20 bg-purple-500/5 text-sm font-medium text-purple-400 transition-colors hover:bg-purple-500/10 active:scale-95"
         >
           Add Subscription
         </button>
@@ -1135,7 +1135,7 @@ function HistoryView({
                   type="button"
                   onClick={() => setPendingDeleteKey(m.key)}
                   aria-label={`Delete ${label}`}
-                  className="flex w-11 items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 text-slate-400 transition-colors hover:border-rose-500/40 hover:bg-rose-500/10 hover:text-rose-400"
+                  className="flex w-11 items-center justify-center rounded-xl border border-slate-800/50 bg-slate-900/30 text-slate-500 transition-colors hover:border-rose-500/30 hover:bg-rose-500/5 hover:text-rose-400 active:scale-95"
                 >
                   <Trash2 className="h-4 w-4" aria-hidden="true" />
                 </button>

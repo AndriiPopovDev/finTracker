@@ -218,27 +218,28 @@ export function TransactionForm({
 
   return (
     <div className="space-y-2">
-      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
         {isEditing ? "Edit Transaction" : "New Transaction"}
       </p>
 
       {/* Type toggle: Expense | Income | Transfer */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-1.5 rounded-xl border border-slate-800/40 bg-slate-900/30 p-0.5">
         <button
           type="button"
           onPointerDown={(e) => e.preventDefault()}
           onClick={() => {
             setTransactionType("expense")
             setCategory(CATEGORIES.expense[0].name)
+            setDestination("card")
             keepAmountFocus()
           }}
-          className={`flex items-center justify-center gap-1.5 rounded-xl border py-2.5 text-xs font-semibold transition-colors ${
+          className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition-all active:scale-95 ${
             transactionType === "expense"
-              ? "border-rose-500/40 bg-rose-500/10 text-rose-400"
-              : "border-slate-800 bg-slate-900/60 text-slate-400 hover:text-slate-200"
+              ? "bg-rose-500/10 text-rose-400"
+              : "text-slate-500 hover:text-slate-300"
           }`}
         >
-          <ArrowDownCircle className="h-4 w-4" aria-hidden="true" />
+          <ArrowDownCircle className="h-3.5 w-3.5" aria-hidden="true" />
           Expense
         </button>
         <button
@@ -247,15 +248,16 @@ export function TransactionForm({
           onClick={() => {
             setTransactionType("income")
             setCategory(CATEGORIES.income[0].name)
+            setDestination("card")
             keepAmountFocus()
           }}
-          className={`flex items-center justify-center gap-1.5 rounded-xl border py-2.5 text-xs font-semibold transition-colors ${
+          className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition-all active:scale-95 ${
             transactionType === "income"
-              ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
-              : "border-slate-800 bg-slate-900/60 text-slate-400 hover:text-slate-200"
+              ? "bg-emerald-500/10 text-emerald-400"
+              : "text-slate-500 hover:text-slate-300"
           }`}
         >
-          <ArrowUpCircle className="h-4 w-4" aria-hidden="true" />
+          <ArrowUpCircle className="h-3.5 w-3.5" aria-hidden="true" />
           Income
         </button>
         <button
@@ -265,13 +267,13 @@ export function TransactionForm({
             setTransactionType("transfer")
             keepAmountFocus()
           }}
-          className={`flex items-center justify-center gap-1.5 rounded-xl border py-2.5 text-xs font-semibold transition-colors ${
+          className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition-all active:scale-95 ${
             transactionType === "transfer"
-              ? "border-blue-500/40 bg-blue-500/10 text-blue-400"
-              : "border-slate-800 bg-slate-900/60 text-slate-400 hover:text-slate-200"
+              ? "bg-blue-500/10 text-blue-400"
+              : "text-slate-500 hover:text-slate-300"
           }`}
         >
-          <ArrowLeftRight className="h-4 w-4" aria-hidden="true" />
+          <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden="true" />
           Transfer
         </button>
       </div>
@@ -289,10 +291,10 @@ export function TransactionForm({
                     type="button"
                     onPointerDown={(e) => e.preventDefault()}
                     onClick={() => setTransferFrom(item.value)}
-                    className={`flex flex-col items-center justify-center gap-0.5 rounded-lg border py-2 text-[9px] font-semibold transition-colors ${
+                    className={`flex flex-col items-center justify-center gap-0.5 rounded-lg py-2 text-[9px] font-semibold transition-all active:scale-95 ${
                       transferFrom === item.value
-                        ? "border-rose-500/40 bg-rose-500/10 text-rose-400"
-                        : "border-slate-800 bg-slate-900/60 text-slate-400 hover:text-slate-200"
+                        ? "bg-rose-500/10 text-rose-400"
+                        : "text-slate-500 hover:text-slate-300"
                     }`}
                   >
                     <item.icon className="h-4 w-4" aria-hidden="true" />
@@ -310,10 +312,10 @@ export function TransactionForm({
                     type="button"
                     onPointerDown={(e) => e.preventDefault()}
                     onClick={() => setTransferTo(item.value)}
-                    className={`flex flex-col items-center justify-center gap-0.5 rounded-lg border py-2 text-[9px] font-semibold transition-colors ${
+                    className={`flex flex-col items-center justify-center gap-0.5 rounded-lg py-2 text-[9px] font-semibold transition-all active:scale-95 ${
                       transferTo === item.value
-                        ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
-                        : "border-slate-800 bg-slate-900/60 text-slate-400 hover:text-slate-200"
+                        ? "bg-emerald-500/10 text-emerald-400"
+                        : "text-slate-500 hover:text-slate-300"
                     }`}
                   >
                     <item.icon className="h-4 w-4" aria-hidden="true" />
@@ -333,12 +335,12 @@ export function TransactionForm({
               type="button"
               onPointerDown={(e) => e.preventDefault()}
               onClick={() => setDestination(item.value)}
-              className={`flex items-center justify-center gap-1.5 rounded-xl border py-2 px-3 text-xs font-semibold transition-colors ${
+              className={`flex items-center justify-center gap-1.5 rounded-xl py-2 px-3 text-xs font-semibold transition-all active:scale-95 ${
                 destination === item.value
-                  ? item.value === "card" ? "border-blue-500/40 bg-blue-500/10 text-blue-400" :
-                    item.value === "cash" ? "border-amber-500/40 bg-amber-500/10 text-amber-400" :
-                    "border-purple-500/40 bg-purple-500/10 text-purple-400"
-                  : "border-slate-800 bg-slate-900/60 text-slate-400 hover:text-slate-200"
+                  ? item.value === "card" ? "bg-blue-500/10 text-blue-400" :
+                    item.value === "cash" ? "bg-amber-500/10 text-amber-400" :
+                    "bg-purple-500/10 text-purple-400"
+                  : "text-slate-500 hover:text-slate-300"
               }`}
             >
               <item.icon className="h-3.5 w-3.5" aria-hidden="true" />
@@ -354,10 +356,10 @@ export function TransactionForm({
                 keepAmountFocus()
               }}
               aria-pressed={isRecurring}
-              className={`flex items-center justify-center gap-1.5 rounded-xl border py-2 px-3 text-xs font-semibold transition-colors ${
+              className={`flex items-center justify-center gap-1.5 rounded-xl py-2 px-3 text-xs font-semibold transition-all active:scale-95 ${
                 isRecurring
-                  ? "border-purple-500/50 bg-purple-500/15 text-purple-300 shadow-[0_0_8px_rgba(168,85,247,0.2)]"
-                  : "border-slate-800 bg-slate-900/60 text-slate-400 hover:text-slate-200"
+                  ? "bg-purple-500/10 text-purple-400"
+                  : "text-slate-500 hover:text-slate-300"
               }`}
             >
               <Repeat className="h-3.5 w-3.5" aria-hidden="true" />
@@ -373,7 +375,7 @@ export function TransactionForm({
       <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-2">
         <label className="relative min-w-0">
           <span className="sr-only">Amount</span>
-          <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-500">
+          <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-600">
             {transactionType === "income"
               ? <ArrowUpCircle className="h-4 w-4 text-emerald-500/80" aria-hidden="true" />
               : transactionType === "expense"
@@ -394,10 +396,10 @@ export function TransactionForm({
               if (e.key === "Enter") resolveAndSubmit()
               if (e.key === "Escape" && isEditing && onCancelEdit) onCancelEdit()
             }}
-            className="h-11 w-full rounded-xl border border-slate-800 bg-slate-900/60 pl-9 pr-3 text-[15px] text-white placeholder:text-slate-500 outline-none focus:border-blue-500"
+            className="h-11 w-full rounded-xl border border-slate-800/50 bg-slate-950/50 pl-9 pr-3 text-sm text-white placeholder:text-slate-600 outline-none focus:border-slate-700"
           />
           {calcPreview && (
-            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[11px] font-medium text-blue-400/80">
+            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[10px] font-medium text-slate-500">
               = {calcPreview}
             </span>
           )}
@@ -413,10 +415,10 @@ export function TransactionForm({
             onPointerDown={(e) => e.preventDefault()}
             onClick={resolveAndSubmit}
             aria-label={isTransfer ? "Execute transfer" : "Add transaction"}
-            className={`flex h-11 w-11 items-center justify-center rounded-xl text-white shadow-lg transition-transform hover:scale-105 active:scale-95 ${
+            className={`flex h-11 w-11 items-center justify-center rounded-xl text-white transition-all hover:scale-105 active:scale-95 ${
               isTransfer
-                ? "bg-gradient-to-br from-blue-500 to-blue-700 shadow-blue-600/40"
-                : "bg-gradient-to-br from-rose-500 to-rose-700 shadow-rose-600/40"
+                ? "bg-blue-600"
+                : "bg-rose-600"
             }`}
           >
             <Plus className="h-5 w-5" aria-hidden="true" />
@@ -433,7 +435,7 @@ export function TransactionForm({
             placeholder="Name (optional)"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="h-11 w-full rounded-xl border border-slate-800 bg-slate-900/60 px-3 text-sm text-white placeholder:text-slate-500 outline-none focus:border-blue-500"
+            className="h-11 w-full rounded-xl border border-slate-800/50 bg-slate-950/50 px-3 text-sm text-white placeholder:text-slate-600 outline-none focus:border-slate-700"
           />
         </label>
       )}
@@ -446,7 +448,7 @@ export function TransactionForm({
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => insertCharAtCursor(sym)}
-            className="h-9 w-9 shrink-0 rounded-lg border border-slate-700 bg-slate-900/80 text-sm font-semibold text-slate-300 transition-colors hover:border-blue-500/40 hover:bg-blue-500/10 hover:text-blue-400 active:scale-95"
+            className="h-8 w-8 shrink-0 rounded-lg border border-slate-800/40 bg-slate-950/30 text-xs font-semibold text-slate-500 transition-colors hover:border-slate-700/50 hover:text-slate-400 active:scale-95"
             aria-label={`Insert ${sym}`}
           >
             {sym}
@@ -467,7 +469,7 @@ export function TransactionForm({
             }}
               aria-label="Paste amount from clipboard"
               title="Paste from clipboard"
-              className="flex shrink-0 items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900/70 px-2.5 py-1 text-[11px] font-medium text-slate-300 transition-colors hover:border-blue-500/40 hover:bg-blue-500/10 hover:text-blue-400"
+              className="flex shrink-0 items-center gap-1.5 rounded-full border border-slate-800/40 bg-slate-950/30 px-2.5 py-1.5 text-[11px] font-medium text-slate-500 transition-colors hover:border-slate-700/50 hover:text-slate-400"
             >
               <ClipboardPaste className="h-3.5 w-3.5" aria-hidden="true" />
               Paste
