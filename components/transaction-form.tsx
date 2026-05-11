@@ -326,14 +326,14 @@ export function TransactionForm({
         </div>
       ) : (
         /* Expense/Income mode: destination picker + Monthly */
-        <div className="grid grid-cols-4 gap-2">
+        <div className="flex justify-center gap-2">
           {DESTINATION_OPTIONS.filter((item) => transactionType === "income" || item.value !== "savings").map((item) => (
             <button
               key={item.value}
               type="button"
               onPointerDown={(e) => e.preventDefault()}
               onClick={() => setDestination(item.value)}
-              className={`flex items-center justify-center gap-1.5 rounded-xl border py-2 text-xs font-semibold transition-colors ${
+              className={`flex items-center justify-center gap-1.5 rounded-xl border py-2 px-3 text-xs font-semibold transition-colors ${
                 destination === item.value
                   ? item.value === "card" ? "border-blue-500/40 bg-blue-500/10 text-blue-400" :
                     item.value === "cash" ? "border-amber-500/40 bg-amber-500/10 text-amber-400" :
@@ -354,7 +354,7 @@ export function TransactionForm({
                 keepAmountFocus()
               }}
               aria-pressed={isRecurring}
-              className={`flex items-center justify-center gap-1.5 rounded-xl border py-2 text-xs font-semibold transition-colors ${
+              className={`flex items-center justify-center gap-1.5 rounded-xl border py-2 px-3 text-xs font-semibold transition-colors ${
                 isRecurring
                   ? "border-purple-500/50 bg-purple-500/15 text-purple-300 shadow-[0_0_8px_rgba(168,85,247,0.2)]"
                   : "border-slate-800 bg-slate-900/60 text-slate-400 hover:text-slate-200"
@@ -439,7 +439,7 @@ export function TransactionForm({
       )}
 
       {/* Math keyboard accessory bar for iOS */}
-      <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
+      <div className="mt-3 flex items-center gap-1 overflow-x-auto scrollbar-none">
         {["+", "-", "*", "/", "(", ")"].map((sym) => (
           <button
             key={sym}
