@@ -16,10 +16,18 @@ const VISIBLE_COUNT = 3
 const EXPANDED_COUNT = 5
 
 export function TransactionList({ transactions, periodLabel, onDelete, onEdit, currency }: Props) {
-  const [expanded, setExpanded] = useState(false)
-  const visibleCount = expanded ? EXPANDED_COUNT : VISIBLE_COUNT
+  const [visibleCount, setVisibleCount] = useState(VISIBLE_COUNT)
   const visibleTransactions = transactions.slice(0, visibleCount)
   const hasMore = transactions.length > visibleCount
+  const remainingCount = transactions.length - visibleCount
+
+  const handleShowMore = () => {
+    setVisibleCount((prev) => Math.min(prev + EXPANDED_COUNT, transactions.length))
+  }
+
+  const handleShowLess = () => {
+    setVisibleCount(VISIBLE_COUNT)
+  }
 
   return (
     <div className="space-y-3">
@@ -128,14 +136,14 @@ export function TransactionList({ transactions, periodLabel, onDelete, onEdit, c
           })}
           </ul>
 
-          {hasMore && (
+          {(hasMore || visibleCount > VISIBLE_COUNT) && (
             <button
               type="button"
-              onClick={() => setExpanded(!expanded)}
+              onClick={visibleCount >= transactions.length ? handleShowLess : handleShowMore}
               className="mx-auto mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl border border-slate-700/50 bg-slate-900/60 py-2.5 text-xs font-semibold text-slate-400 transition-all hover:border-blue-500/40 hover:bg-slate-800 hover:text-blue-400 active:scale-[0.98]"
             >
-              <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`} />
-              {expanded ? "Show less" : `${transactions.length - VISIBLE_COUNT} more`}
+              <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${visibleCount >= transactions.length ? "rotate-180" : ""}`} />
+              {visibleCount >= transactions.length ? "Show less" : `${remainingCount} more`}
             </button>
           )}
         </>
