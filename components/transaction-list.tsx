@@ -1,6 +1,7 @@
 "use client"
 
-import { CircleArrowDown as ArrowDownCircle, CircleArrowUp as ArrowUpCircle, ArrowLeftRight, Repeat, Pencil, Trash2 } from "lucide-react"
+import { useState } from "react"
+import { CircleArrowDown as ArrowDownCircle, CircleArrowUp as ArrowUpCircle, ArrowLeftRight, Repeat, Pencil, Trash2, ChevronDown } from "lucide-react"
 import { formatUAH, getCategoryEmoji, type CurrencyCode, type Transaction } from "@/lib/finance"
 
 type Props = {
@@ -11,7 +12,15 @@ type Props = {
   currency: CurrencyCode
 }
 
+const VISIBLE_COUNT = 3
+const EXPANDED_COUNT = 5
+
 export function TransactionList({ transactions, periodLabel, onDelete, onEdit, currency }: Props) {
+  const [expanded, setExpanded] = useState(false)
+  const visibleCount = expanded ? EXPANDED_COUNT : VISIBLE_COUNT
+  const visibleTransactions = transactions.slice(0, visibleCount)
+  const hasMore = transactions.length > visibleCount
+
   return (
     <div className="space-y-3">
       <h3 className="px-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
@@ -23,8 +32,9 @@ export function TransactionList({ transactions, periodLabel, onDelete, onEdit, c
           No transactions for this period yet.
         </div>
       ) : (
-        <ul className="space-y-2">
-          {transactions.map((t) => {
+        <>
+          <ul className="space-y-2">
+            {visibleTransactions.map((t) => {
             const isTransfer = t.type === "transfer"
             const signedAmount = t.type === "income" ? Math.abs(t.amount) : t.type === "expense" ? -Math.abs(t.amount) : 0
             const isIncome = signedAmount > 0
@@ -116,7 +126,19 @@ export function TransactionList({ transactions, periodLabel, onDelete, onEdit, c
               </li>
             )
           })}
-        </ul>
+          </ul>
+
+          {hasMore && (
+            <button
+              type="button"
+              onClick={() => setExpanded(!expanded)}
+              className="mx-auto mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl border border-slate-700/50 bg-slate-900/60 py-2.5 text-xs font-semibold text-slate-400 transition-all hover:border-blue-500/40 hover:bg-slate-800 hover:text-blue-400 active:scale-[0.98]"
+            >
+              <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`} />
+              {expanded ? "Show less" : `${transactions.length - VISIBLE_COUNT} more`}
+            </button>
+          )}
+        </>
       )}
     </div>
   )

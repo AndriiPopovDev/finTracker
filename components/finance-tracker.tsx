@@ -60,9 +60,9 @@ export function FinanceTracker() {
   const [date, setDate] = useState<Date>(() => new Date())
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [plan, setPlan] = useState<number>(DEFAULT_PLAN)
-  const [card, setCard] = useState<number>(7000)
-  const [cash, setCash] = useState<number>(8000)
-  const [savings, setSavings] = useState<number>(50000)
+  const [card, setCard] = useState<number>(0)
+  const [cash, setCash] = useState<number>(0)
+  const [savings, setSavings] = useState<number>(0)
   const [hydrated, setHydrated] = useState(false)
 
   const [transactionType, setTransactionType] = useState<TransactionType>("expense")
