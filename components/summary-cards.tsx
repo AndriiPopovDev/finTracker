@@ -21,7 +21,7 @@ export function SummaryCards({ totalIncome, totalExpense, currency }: Props) {
       >
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -right-10 -top-10 h-20 w-20 rounded-full bg-emerald-500/3 blur-[30px]"
+          className="pointer-events-none absolute -right-8 -top-8 h-16 w-16 rounded-full bg-emerald-500/2 blur-[25px]"
         />
         <div className="relative flex items-center gap-1.5">
           <ArrowUpCircle className="h-3.5 w-3.5 text-emerald-500/70" aria-hidden="true" />
@@ -47,7 +47,7 @@ export function SummaryCards({ totalIncome, totalExpense, currency }: Props) {
       >
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -right-10 -top-10 h-20 w-20 rounded-full bg-rose-500/3 blur-[30px]"
+          className="pointer-events-none absolute -right-8 -top-8 h-16 w-16 rounded-full bg-rose-500/2 blur-[25px]"
         />
         <div className="relative flex items-center gap-1.5">
           <ArrowDownCircle className="h-3.5 w-3.5 text-rose-500/70" aria-hidden="true" />

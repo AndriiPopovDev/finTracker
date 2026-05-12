@@ -24,7 +24,7 @@ import { SummaryCards } from "@/components/summary-cards"
 import { TransactionForm } from "@/components/transaction-form"
 import { SpendingChart } from "@/components/spending-chart"
 import { TransactionList } from "@/components/transaction-list"
-import { SmartInsightCard } from "@/components/ui"
+import { SmartInsightCard, ErrorBoundary } from "@/components/ui"
 
 const DEFAULT_PLAN = 25000
 const RECURRING_KEY = "recurring_transactions_v1"
@@ -103,97 +103,130 @@ export function FinanceTracker() {
   // Load balances
   useEffect(() => {
     if (typeof window === "undefined") return
-    const raw = window.localStorage.getItem(BALANCES_KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      setCard(parsed.card ?? 0)
-      setCash(parsed.cash ?? 0)
-      setSavings(parsed.savings ?? 0)
+    try {
+      const raw = window.localStorage.getItem(BALANCES_KEY)
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        setCard(parsed.card ?? 0)
+        setCash(parsed.cash ?? 0)
+        setSavings(parsed.savings ?? 0)
+      }
+    } catch (error) {
+      console.error('[FinanceTracker] Failed to load balances:', error)
     }
   }, [])
 
   // Persist balances
   useEffect(() => {
     if (!hydrated || typeof window === "undefined") return
-    window.localStorage.setItem(BALANCES_KEY, JSON.stringify({ card, cash, savings }))
+    try {
+      window.localStorage.setItem(BALANCES_KEY, JSON.stringify({ card, cash, savings }))
+    } catch (error) {
+      console.error('[FinanceTracker] Failed to persist balances:', error)
+    }
   }, [card, cash, savings, hydrated])
 
   // Load transactions + plan for the active month
   useEffect(() => {
     if (typeof window === "undefined") return
-    const savedTx = window.localStorage.getItem(monthKey)
-    let nextTransactions = savedTx ? (JSON.parse(savedTx) as Transaction[]) : []
-    const savedRecurring = window.localStorage.getItem(RECURRING_KEY)
-    const recurring = savedRecurring ? (JSON.parse(savedRecurring) as RecurringTemplate[]) : []
-    setRecurringTemplates(recurring)
-    const savedTemplates = window.localStorage.getItem(QUICK_TEMPLATES_KEY)
-    setQuickTemplates(savedTemplates ? (JSON.parse(savedTemplates) as QuickTemplate[]) : DEFAULT_QUICK_TEMPLATES)
-    const savedCurrency = window.localStorage.getItem(CURRENCY_KEY) as CurrencyCode | null
-    if (savedCurrency === "UAH" || savedCurrency === "USD" || savedCurrency === "EUR") {
-      setCurrency(savedCurrency)
-    } else {
-      setCurrency("UAH")
+    try {
+      const savedTx = window.localStorage.getItem(monthKey)
+      let nextTransactions = savedTx ? (JSON.parse(savedTx) as Transaction[]) : []
+      const savedRecurring = window.localStorage.getItem(RECURRING_KEY)
+      const recurring = savedRecurring ? (JSON.parse(savedRecurring) as RecurringTemplate[]) : []
+      setRecurringTemplates(recurring)
+      const savedTemplates = window.localStorage.getItem(QUICK_TEMPLATES_KEY)
+      setQuickTemplates(savedTemplates ? (JSON.parse(savedTemplates) as QuickTemplate[]) : DEFAULT_QUICK_TEMPLATES)
+      const savedCurrency = window.localStorage.getItem(CURRENCY_KEY) as CurrencyCode | null
+      if (savedCurrency === "UAH" || savedCurrency === "USD" || savedCurrency === "EUR") {
+        setCurrency(savedCurrency)
+      } else {
+        setCurrency("UAH")
+      }
+      if (recurring.length > 0) {
+        const existingRecurringIds = new Set(nextTransactions.map((t) => t.recurringId).filter(Boolean))
+        const generated = recurring
+          .filter((template) => !existingRecurringIds.has(template.id))
+          .map((template) => ({
+            id: Date.now() + Math.floor(Math.random() * 100000),
+            amount: template.amount,
+            category: template.category,
+            type: template.type,
+            date: formatShortDate(new Date()),
+            name: template.name,
+            recurringId: template.id,
+            destination: template.destination ?? "card",
+          } satisfies Transaction))
+        if (generated.length > 0) nextTransactions = [...generated, ...nextTransactions]
+      }
+      setTransactions(nextTransactions)
+      const savedPlan = window.localStorage.getItem(planKey)
+      setPlan(savedPlan ? Number(savedPlan) : DEFAULT_PLAN)
+      setHydrated(true)
+    } catch (error) {
+      console.error('[FinanceTracker] Failed to load month data:', error)
+      setHydrated(true) // Still mark as hydrated to prevent infinite loops
     }
-    if (recurring.length > 0) {
-      const existingRecurringIds = new Set(nextTransactions.map((t) => t.recurringId).filter(Boolean))
-      const generated = recurring
-        .filter((template) => !existingRecurringIds.has(template.id))
-        .map((template) => ({
-          id: Date.now() + Math.floor(Math.random() * 100000),
-          amount: template.amount,
-          category: template.category,
-          type: template.type,
-          date: formatShortDate(new Date()),
-          name: template.name,
-          recurringId: template.id,
-          destination: template.destination ?? "card",
-        } satisfies Transaction))
-      if (generated.length > 0) nextTransactions = [...generated, ...nextTransactions]
-    }
-    setTransactions(nextTransactions)
-    const savedPlan = window.localStorage.getItem(planKey)
-    setPlan(savedPlan ? Number(savedPlan) : DEFAULT_PLAN)
-    setHydrated(true)
   }, [monthKey, planKey])
 
   // Persist transactions
   useEffect(() => {
     if (!hydrated || typeof window === "undefined") return
-    if (transactions.length === 0) {
-      window.localStorage.removeItem(monthKey)
-    } else {
-      window.localStorage.setItem(monthKey, JSON.stringify(transactions))
+    try {
+      if (transactions.length === 0) {
+        window.localStorage.removeItem(monthKey)
+      } else {
+        window.localStorage.setItem(monthKey, JSON.stringify(transactions))
+      }
+    } catch (error) {
+      console.error('[FinanceTracker] Failed to persist transactions:', error)
     }
   }, [transactions, monthKey, hydrated])
 
   // Persist plan
   useEffect(() => {
     if (!hydrated || typeof window === "undefined") return
-    if (plan === DEFAULT_PLAN) {
-      window.localStorage.removeItem(planKey)
-    } else {
-      window.localStorage.setItem(planKey, String(plan))
+    try {
+      if (plan === DEFAULT_PLAN) {
+        window.localStorage.removeItem(planKey)
+      } else {
+        window.localStorage.setItem(planKey, String(plan))
+      }
+    } catch (error) {
+      console.error('[FinanceTracker] Failed to persist plan:', error)
     }
   }, [plan, planKey, hydrated])
 
   // Persist recurring templates (sync from auto-detection in transaction form)
   useEffect(() => {
     if (!hydrated || typeof window === "undefined") return
-    if (recurringTemplates.length === 0) {
-      window.localStorage.removeItem(RECURRING_KEY)
-    } else {
-      window.localStorage.setItem(RECURRING_KEY, JSON.stringify(recurringTemplates))
+    try {
+      if (recurringTemplates.length === 0) {
+        window.localStorage.removeItem(RECURRING_KEY)
+      } else {
+        window.localStorage.setItem(RECURRING_KEY, JSON.stringify(recurringTemplates))
+      }
+    } catch (error) {
+      console.error('[FinanceTracker] Failed to persist recurring templates:', error)
     }
   }, [recurringTemplates, hydrated])
 
   useEffect(() => {
     if (!hydrated || typeof window === "undefined") return
-    window.localStorage.setItem(CURRENCY_KEY, currency)
+    try {
+      window.localStorage.setItem(CURRENCY_KEY, currency)
+    } catch (error) {
+      console.error('[FinanceTracker] Failed to persist currency:', error)
+    }
   }, [currency, hydrated])
 
   useEffect(() => {
     if (!hydrated || typeof window === "undefined") return
-    window.localStorage.setItem(QUICK_TEMPLATES_KEY, JSON.stringify(quickTemplates))
+    try {
+      window.localStorage.setItem(QUICK_TEMPLATES_KEY, JSON.stringify(quickTemplates))
+    } catch (error) {
+      console.error('[FinanceTracker] Failed to persist quick templates:', error)
+    }
   }, [quickTemplates, hydrated])
 
   // FAB auto-hide on scroll
@@ -516,61 +549,63 @@ export function FinanceTracker() {
 
   return (
     <main className="scroll-smooth relative min-h-screen overflow-hidden bg-[#0b1120] text-slate-200 font-sans">
-      {/* ambient page gradients */}
+      {/* ambient page gradients - optimized for mobile */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -top-32 left-1/2 h-72 w-[36rem] -translate-x-1/2 rounded-full bg-blue-600/15 blur-3xl"
+        className="pointer-events-none absolute -top-24 left-1/2 h-56 w-[28rem] -translate-x-1/2 rounded-full bg-blue-600/10 blur-3xl"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute top-1/3 -left-40 h-72 w-72 rounded-full bg-cyan-500/10 blur-3xl"
+        className="pointer-events-none absolute top-1/4 -left-32 h-56 w-56 rounded-full bg-cyan-500/6 blur-3xl"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute bottom-0 -right-32 h-80 w-80 rounded-full bg-rose-600/10 blur-3xl"
+        className="pointer-events-none absolute bottom-0 -right-24 h-64 w-64 rounded-full bg-rose-600/6 blur-3xl"
       />
 
-      <div className="relative mx-auto w-full max-w-md px-4 pb-28 pt-3 space-y-4">
-        <FinanceHeader
-          periodLabel={periodLabel}
-          currentDate={date}
-          onDateChange={setDate}
-          historyOpen={showHistory}
-          onOpenSettings={() => setSettingsOpen(true)}
-          onToggleHistory={() => setShowHistory((v) => !v)}
-        />
+      <div className="relative mx-auto w-full max-w-md px-4 pb-28 pt-3 space-y-3">
+        <ErrorBoundary>
+          <FinanceHeader
+            periodLabel={periodLabel}
+            currentDate={date}
+            onDateChange={setDate}
+            historyOpen={showHistory}
+            onOpenSettings={() => setSettingsOpen(true)}
+            onToggleHistory={() => setShowHistory((v) => !v)}
+          />
 
-        <BalanceCard
-          card={card}
-          cash={cash}
-          savings={savings}
-          monthlyTotal={monthlyTotal}
-          currency={currency}
-          onCurrencyChange={setCurrency}
-        />
+          <BalanceCard
+            card={card}
+            cash={cash}
+            savings={savings}
+            monthlyTotal={monthlyTotal}
+            currency={currency}
+            onCurrencyChange={setCurrency}
+          />
 
-        <SummaryCards totalIncome={totalIncome} totalExpense={totalExpense} currency={currency} />
+          <SummaryCards totalIncome={totalIncome} totalExpense={totalExpense} currency={currency} />
 
-        <SmartInsightCard insights={smartInsights} />
+          <SmartInsightCard insights={smartInsights} />
 
-        <SpendingChart 
-          data={chartData} 
-          totalExpense={totalExpense} 
-          currency={currency} 
-          forecastValue={forecastValue}
-          currentDate={date}
-          allTransactions={transactions}
-        />
+          <SpendingChart 
+            data={chartData} 
+            totalExpense={totalExpense} 
+            currency={currency} 
+            forecastValue={forecastValue}
+            currentDate={date}
+            allTransactions={transactions}
+          />
 
-        {showHistory && <HistoryView currentMonthKey={monthKey} onSelect={setDate} currency={currency} />}
+          {showHistory && <HistoryView currentMonthKey={monthKey} onSelect={setDate} currency={currency} />}
 
-        <TransactionList
-          transactions={transactions}
-          periodLabel={periodLabel}
-          onDelete={deleteTransaction}
-          onEdit={startEdit}
-          currency={currency}
-        />
+          <TransactionList
+            transactions={transactions}
+            periodLabel={periodLabel}
+            onDelete={deleteTransaction}
+            onEdit={startEdit}
+            currency={currency}
+          />
+        </ErrorBoundary>
       </div>
 
       {/* FAB */}

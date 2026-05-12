@@ -20,14 +20,14 @@ export function BalanceCard({ card, cash, savings, monthlyTotal, currency, onCur
 
   return (
     <div className="relative overflow-hidden rounded-2xl border border-slate-800/40 bg-slate-950 p-4">
-      {/* Subtle ambient glow - reduced intensity */}
+      {/* Subtle ambient glow - production optimized */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-blue-500/3 blur-[40px]"
+        className="pointer-events-none absolute -right-12 -top-12 h-24 w-24 rounded-full bg-blue-500/2 blur-[30px]"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -bottom-16 -left-12 h-24 w-24 rounded-full bg-cyan-500/2 blur-[35px]"
+        className="pointer-events-none absolute -bottom-12 -left-12 h-20 w-20 rounded-full bg-cyan-500/1 blur-[25px]"
       />
 
       <div className="relative">

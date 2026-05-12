@@ -352,12 +352,7 @@ export function SpendingChart({ data, totalExpense, currency, forecastValue, cur
         </motion.div>
       )}
 
-      <div className="mt-3 pt-3 border-t border-slate-800/30">
-        <p className="text-xs text-slate-500">
-          Projected month-end balance: {" "}
-          <span className={`font-semibold ${forecastClass}`}>{formatUAH(forecastValue, undefined, currency)}</span>
-        </p>
-      </div>
+      {/* Forecast note removed - already shown in insights */}
     </div>
   )
 }
