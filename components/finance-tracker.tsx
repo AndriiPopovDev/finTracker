@@ -554,7 +554,7 @@ export function FinanceTracker() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.15 }}
               className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
               onClick={cancelEdit}
               aria-hidden="true"
@@ -565,18 +565,18 @@ export function FinanceTracker() {
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
-              transition={{ type: "spring", stiffness: 360, damping: 32, mass: 0.8 }}
-              className="fixed inset-x-0 bottom-10 z-50 mx-auto w-full max-w-md max-h-[68dvh] overflow-visible rounded-2xl border border-slate-800/50 bg-slate-950/95 px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-2 shadow-xl shadow-black/40 backdrop-blur-xl"
+              transition={{ type: "spring", stiffness: 400, damping: 35, mass: 0.7 }}
+              className="fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-md max-h-[75dvh] overflow-y-auto overscroll-contain rounded-t-3xl border border-slate-800/50 bg-slate-950/95 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 shadow-2xl shadow-black/50 backdrop-blur-xl"
             >
               {/* Drag handle */}
-              <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-slate-800" aria-hidden="true" />
+              <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-700" aria-hidden="true" />
 
               {/* Close button */}
               <button
                 type="button"
                 onClick={cancelEdit}
                 aria-label="Close"
-                className="absolute right-4 top-4 rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+                className="absolute right-3 top-3 rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
               >
                 <X className="h-5 w-5" aria-hidden="true" />
               </button>

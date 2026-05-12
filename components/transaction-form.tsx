@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useCallback } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import {
   CircleArrowDown as ArrowDownCircle,
   CircleArrowUp as ArrowUpCircle,
@@ -19,8 +20,7 @@ import {
   PiggyBank,
   type LucideIcon,
 } from "lucide-react"
-import { CATEGORIES, formatUAH, type CurrencyCode, type TransactionDestination, type TransactionType } from "@/lib/finance"
-import { CategorySelect } from "@/components/category-select"
+import { CATEGORIES, formatUAH, type CurrencyCode, type TransactionDestination, type TransactionType, getCategoryEmoji } from "@/lib/finance"
 
 function evaluateExpression(raw: string): number | null {
   const normalized = raw.replace(/,/g, ".")
@@ -41,6 +41,32 @@ const MERCHANT_KEYWORDS: Record<string, string> = {
   uber: "Personal", bolt: "Personal", taxi: "Personal", metro: "Personal", transport: "Personal",
   cinema: "Entertainment", netflix: "Entertainment", steam: "Games", gift: "Gifts",
   salary: "Salary", bonus: "Bonus", freelance: "Freelance",
+}
+
+function parseNaturalInput(text: string): { amount?: number; category?: string; name?: string } {
+  const result: { amount?: number; category?: string; name?: string } = {}
+  
+  // Extract amount
+  const amountMatch = text.match(/(\d+[.,]?\d*)/)
+  if (amountMatch) {
+    result.amount = Number.parseFloat(amountMatch[1].replace(/,/g, "."))
+  }
+  
+  // Extract category from keywords
+  const lower = text.toLowerCase()
+  for (const [keyword, cat] of Object.entries(MERCHANT_KEYWORDS)) {
+    if (lower.includes(keyword)) {
+      result.category = cat
+      // Extract name (first word or phrase before amount)
+      const nameMatch = lower.match(/^([a-zа-яєії]+)\s/i)
+      if (nameMatch && nameMatch[1]) {
+        result.name = nameMatch[1].charAt(0).toUpperCase() + nameMatch[1].slice(1)
+      }
+      break
+    }
+  }
+  
+  return result
 }
 
 function parseClipboard(text: string): { amount: number; category: string } | null {
@@ -83,6 +109,14 @@ const DESTINATION_OPTIONS: { value: TransactionDestination; label: string; icon:
   { value: "cash", label: "Cash", icon: Wallet },
   { value: "savings", label: "Savings", icon: PiggyBank },
 ]
+
+// Haptic feedback helper
+function triggerHaptic(type: 'light' | 'medium' | 'heavy' = 'light') {
+  if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+    const patterns = { light: 10, medium: 20, heavy: 30 }
+    navigator.vibrate(patterns[type])
+  }
+}
 
 type Props = {
   transactionType: TransactionType
@@ -136,11 +170,15 @@ export function TransactionForm({
   const categories = transactionType === "income" ? CATEGORIES.income : CATEGORIES.expense
   const [calcPreview, setCalcPreview] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const keepAmountFocus = () => {
+  const [inputMode, setInputMode] = useState<'numeric' | 'text'>('numeric')
+  const [parsedPreview, setParsedPreview] = useState<{ amount?: number; category?: string; emoji?: string } | null>(null)
+  const [inputKey, setInputKey] = useState(0) // Force remount on mode switch
+
+  const keepAmountFocus = useCallback(() => {
     window.setTimeout(() => {
       inputRef.current?.focus({ preventScroll: true })
     }, 0)
-  }
+  }, [])
 
   const insertCharAtCursor = (char: string) => {
     const input = inputRef.current
@@ -156,9 +194,33 @@ export function TransactionForm({
   }
 
   useEffect(() => {
-    if (!amount) { setCalcPreview(null); return }
-    const result = evaluateExpression(amount)
-    setCalcPreview(result !== null ? formatUAH(result, undefined, currency) : null)
+    if (!amount) { 
+      setCalcPreview(null)
+      setParsedPreview(null)
+      return 
+    }
+    
+    // Check if input contains letters (AI mode)
+    const hasLetters = /[a-zA-Zа-яА-ЯєіїЄІЇ]/.test(amount)
+    
+    if (hasLetters) {
+      // AI parsing mode
+      const parsed = parseNaturalInput(amount)
+      setParsedPreview(parsed.amount ? {
+        amount: parsed.amount,
+        category: parsed.category,
+        emoji: parsed.category ? getCategoryEmoji(
+          CATEGORIES.income.some(c => c.name === parsed.category) ? 'income' : 'expense',
+          parsed.category
+        ) : undefined
+      } : null)
+      setCalcPreview(null)
+    } else {
+      // Numeric/calc mode
+      const result = evaluateExpression(amount)
+      setCalcPreview(result !== null ? formatUAH(result, undefined, currency) : null)
+      setParsedPreview(null)
+    }
   }, [amount, currency])
 
   useEffect(() => {
@@ -179,16 +241,91 @@ export function TransactionForm({
 
   const resolveAndSubmit = () => {
     if (amount) {
-      const result = evaluateExpression(amount)
-      if (result !== null) setAmount(String(result))
+      // Check if AI mode
+      const hasLetters = /[a-zA-Zа-яА-ЯєіїЄІЇ]/.test(amount)
+      if (hasLetters) {
+        const parsed = parseNaturalInput(amount)
+        if (parsed.amount) {
+          setAmount(String(parsed.amount))
+          if (parsed.category) setCategory(parsed.category)
+          if (parsed.name && !name) setName(parsed.name)
+        }
+      } else {
+        const result = evaluateExpression(amount)
+        if (result !== null) setAmount(String(result))
+      }
     }
+    triggerHaptic('medium')
     setTimeout(onAdd, 0)
   }
 
   const handleAmountBlur = () => {
     if (!amount) return
-    const result = evaluateExpression(amount)
-    if (result !== null) setAmount(String(result))
+    const hasLetters = /[a-zA-Zа-яА-ЯєіїЄІЇ]/.test(amount)
+    if (hasLetters) {
+      const parsed = parseNaturalInput(amount)
+      if (parsed.amount) {
+        setAmount(String(parsed.amount))
+        if (parsed.category) setCategory(parsed.category)
+        if (parsed.name && !name) setName(parsed.name)
+      }
+    } else {
+      const result = evaluateExpression(amount)
+      if (result !== null) setAmount(String(result))
+    }
+  }
+
+  // Smart input handler - auto-detects mode
+  const handleAmountChange = (value: string) => {
+    setAmount(value)
+    
+    // Auto-switch to text mode if letters detected
+    const hasLetters = /[a-zA-Zа-яА-ЯєіїЄІЇ]/.test(value)
+    if (hasLetters && inputMode === 'numeric') {
+      // Force keyboard switch on iOS by remounting input
+      setInputMode('text')
+      setInputKey(prev => prev + 1)
+      triggerHaptic('light')
+      
+      // Refocus after remount
+      setTimeout(() => {
+        inputRef.current?.focus({ preventScroll: true })
+      }, 50)
+    }
+    
+    // Parse in real-time for AI mode
+    if (hasLetters) {
+      const parsed = parseNaturalInput(value)
+      if (parsed.category) {
+        setCategory(parsed.category)
+      }
+      if (parsed.name && !name) {
+        setName(parsed.name)
+      }
+    }
+  }
+  
+  // Explicit mode switch handler
+  const switchToAIMode = () => {
+    setInputMode('text')
+    setInputKey(prev => prev + 1)
+    triggerHaptic('light')
+    setAmount('')
+    setParsedPreview(null)
+    setTimeout(() => {
+      inputRef.current?.focus({ preventScroll: true })
+    }, 100)
+  }
+  
+  const switchToNumericMode = () => {
+    setInputMode('numeric')
+    setInputKey(prev => prev + 1)
+    triggerHaptic('light')
+    setAmount('')
+    setParsedPreview(null)
+    setTimeout(() => {
+      inputRef.current?.focus({ preventScroll: true })
+    }, 100)
   }
 
   const handleSmartPaste = async () => {
@@ -199,12 +336,15 @@ export function TransactionForm({
         setAmount(String(parsed.amount))
         setCategory(parsed.category)
         setTransactionType("expense")
+        triggerHaptic('light')
       } else {
-        const numMatch = text.match(/(\d[\d,.]*)/)
-        if (numMatch) {
-          const raw = numMatch[1].replace(/,/g, ".")
-          const num = Number.parseFloat(raw)
-          if (Number.isFinite(num) && num > 0) setAmount(String(num))
+        // Try natural language parsing
+        const naturalParsed = parseNaturalInput(text)
+        if (naturalParsed.amount) {
+          setAmount(String(naturalParsed.amount))
+          if (naturalParsed.category) setCategory(naturalParsed.category)
+          if (naturalParsed.name) setName(naturalParsed.name)
+          triggerHaptic('light')
         }
       }
     } catch { /* clipboard unavailable */ }
@@ -215,13 +355,16 @@ export function TransactionForm({
     : FALLBACK_TEMPLATES.map((t, idx) => ({ id: String(idx), label: t.label, amount: t.amount, category: t.category, icon: t.icon }))
 
   const isTransfer = transactionType === "transfer"
+  const typeButtonClass = (type: TransactionType) => {
+    const base = "flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-semibold transition-all active:scale-95"
+    const active = type === "expense" ? "bg-rose-500/15 text-rose-400" :
+                   type === "income" ? "bg-emerald-500/15 text-emerald-400" : "bg-blue-500/15 text-blue-400"
+    const inactive = "text-slate-500 hover:text-slate-300"
+    return `${base} ${transactionType === type ? active : inactive}`
+  }
 
   return (
-    <div className="space-y-2">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-        {isEditing ? "Edit Transaction" : "New Transaction"}
-      </p>
-
+    <div className="space-y-3">
       {/* Type toggle: Expense | Income | Transfer */}
       <div className="grid grid-cols-3 gap-1.5 rounded-xl border border-slate-800/40 bg-slate-900/30 p-0.5">
         <button
@@ -231,13 +374,10 @@ export function TransactionForm({
             setTransactionType("expense")
             setCategory(CATEGORIES.expense[0].name)
             setDestination("card")
+            triggerHaptic('light')
             keepAmountFocus()
           }}
-          className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition-all active:scale-95 ${
-            transactionType === "expense"
-              ? "bg-rose-500/10 text-rose-400"
-              : "text-slate-500 hover:text-slate-300"
-          }`}
+          className={typeButtonClass("expense")}
         >
           <ArrowDownCircle className="h-3.5 w-3.5" aria-hidden="true" />
           Expense
@@ -249,13 +389,10 @@ export function TransactionForm({
             setTransactionType("income")
             setCategory(CATEGORIES.income[0].name)
             setDestination("card")
+            triggerHaptic('light')
             keepAmountFocus()
           }}
-          className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition-all active:scale-95 ${
-            transactionType === "income"
-              ? "bg-emerald-500/10 text-emerald-400"
-              : "text-slate-500 hover:text-slate-300"
-          }`}
+          className={typeButtonClass("income")}
         >
           <ArrowUpCircle className="h-3.5 w-3.5" aria-hidden="true" />
           Income
@@ -265,21 +402,133 @@ export function TransactionForm({
           onPointerDown={(e) => e.preventDefault()}
           onClick={() => {
             setTransactionType("transfer")
+            triggerHaptic('light')
             keepAmountFocus()
           }}
-          className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition-all active:scale-95 ${
-            transactionType === "transfer"
-              ? "bg-blue-500/10 text-blue-400"
-              : "text-slate-500 hover:text-slate-300"
-          }`}
+          className={typeButtonClass("transfer")}
         >
           <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden="true" />
           Transfer
         </button>
       </div>
 
+      {/* Amount Input - Primary Focus with Dual Mode */}
+      <div className="relative">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          {/* Mode toggle buttons */}
+          <button
+            type="button"
+            onClick={switchToNumericMode}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all active:scale-95 ${
+              inputMode === 'numeric'
+                ? "bg-slate-800 text-white"
+                : "text-slate-500 hover:text-slate-400"
+            }`}
+          >
+            <span className="text-sm">123</span>
+            <span>Amount</span>
+          </button>
+          <button
+            type="button"
+            onClick={switchToAIMode}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all active:scale-95 ${
+              inputMode === 'text'
+                ? "bg-blue-500/20 text-blue-400"
+                : "text-slate-500 hover:text-slate-400"
+            }`}
+          >
+            <span>✨</span>
+            <span>AI</span>
+          </button>
+        </div>
+        
+        <label className="relative block">
+          <span className="sr-only">Amount</span>
+          <input
+            key={inputKey}
+            ref={inputRef}
+            autoFocus
+            type="text"
+            inputMode={inputMode === 'numeric' ? 'decimal' : 'text'}
+            placeholder={inputMode === 'numeric' ? "0" : "e.g. coffee 155"}
+            value={amount}
+            onChange={(e) => handleAmountChange(e.target.value)}
+            onBlur={handleAmountBlur}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") resolveAndSubmit()
+              if (e.key === "Escape" && isEditing && onCancelEdit) onCancelEdit()
+            }}
+            className="w-full bg-transparent text-center text-5xl font-bold text-white placeholder:text-slate-700 outline-none py-4"
+          />
+          
+          {/* Calculation preview (numeric mode) */}
+          {calcPreview && inputMode === 'numeric' && (
+            <span className="pointer-events-none absolute bottom-0 left-0 right-0 text-center text-xs font-medium text-slate-500">
+              = {calcPreview}
+            </span>
+          )}
+          
+          {/* Parsed preview chip (AI mode) */}
+          {parsedPreview && parsedPreview.amount && (
+            <motion.div
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="pointer-events-none absolute -bottom-8 left-0 right-0 flex items-center justify-center gap-2"
+            >
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-800/80 px-2.5 py-1 text-xs font-medium text-slate-300 backdrop-blur-sm">
+                {parsedPreview.emoji && <span>{parsedPreview.emoji}</span>}
+                {parsedPreview.category && <span>{parsedPreview.category}</span>}
+                <span className="text-slate-500">•</span>
+                <span className="font-semibold text-white">{formatUAH(parsedPreview.amount, undefined, currency)}</span>
+              </span>
+            </motion.div>
+          )}
+        </label>
+      </div>
+
+      {/* Category Chips - Horizontal Scrollable */}
+      {!isTransfer && (
+        <div className="relative -mx-3 px-3">
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+            {categories.map((cat) => {
+              const isActive = category === cat.name
+              const isAIDetected = parsedPreview?.category === cat.name
+              return (
+                <button
+                  key={cat.name}
+                  type="button"
+                  onPointerDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    setCategory(cat.name)
+                    triggerHaptic('light')
+                    keepAmountFocus()
+                  }}
+                  className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium transition-all active:scale-95 ${
+                    isActive
+                      ? "text-white shadow-lg"
+                      : isAIDetected
+                      ? "bg-blue-500/10 text-blue-400 ring-1 ring-blue-500/30"
+                      : "bg-slate-900/50 text-slate-400 hover:text-slate-300"
+                  }`}
+                  style={isActive ? {
+                    backgroundColor: `${cat.color}25`,
+                    boxShadow: `0 4px 12px ${cat.color}20`
+                  } : undefined}
+                >
+                  <span className="text-base">{getCategoryEmoji(transactionType, cat.name)}</span>
+                  <span>{cat.name}</span>
+                  {isAIDetected && (
+                    <span className="text-[8px] font-semibold uppercase tracking-wide text-blue-400">AI</span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Transfer mode: From → To selectors */}
-      {isTransfer ? (
+      {isTransfer && (
         <div className="space-y-2">
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1.5">
@@ -290,7 +539,10 @@ export function TransactionForm({
                     key={item.value}
                     type="button"
                     onPointerDown={(e) => e.preventDefault()}
-                    onClick={() => setTransferFrom(item.value)}
+                    onClick={() => {
+                      setTransferFrom(item.value)
+                      triggerHaptic('light')
+                    }}
                     className={`flex flex-col items-center justify-center gap-0.5 rounded-lg py-2 text-[9px] font-semibold transition-all active:scale-95 ${
                       transferFrom === item.value
                         ? "bg-rose-500/10 text-rose-400"
@@ -311,7 +563,10 @@ export function TransactionForm({
                     key={item.value}
                     type="button"
                     onPointerDown={(e) => e.preventDefault()}
-                    onClick={() => setTransferTo(item.value)}
+                    onClick={() => {
+                      setTransferTo(item.value)
+                      triggerHaptic('light')
+                    }}
                     className={`flex flex-col items-center justify-center gap-0.5 rounded-lg py-2 text-[9px] font-semibold transition-all active:scale-95 ${
                       transferTo === item.value
                         ? "bg-emerald-500/10 text-emerald-400"
@@ -326,15 +581,20 @@ export function TransactionForm({
             </div>
           </div>
         </div>
-      ) : (
-        /* Expense/Income mode: destination picker + Monthly */
+      )}
+
+      {/* Destination + Monthly toggle */}
+      {!isTransfer && (
         <div className="flex justify-center gap-2">
           {DESTINATION_OPTIONS.filter((item) => transactionType === "income" || item.value !== "savings").map((item) => (
             <button
               key={item.value}
               type="button"
               onPointerDown={(e) => e.preventDefault()}
-              onClick={() => setDestination(item.value)}
+              onClick={() => {
+                setDestination(item.value)
+                triggerHaptic('light')
+              }}
               className={`flex items-center justify-center gap-1.5 rounded-xl py-2 px-3 text-xs font-semibold transition-all active:scale-95 ${
                 destination === item.value
                   ? item.value === "card" ? "bg-blue-500/10 text-blue-400" :
@@ -353,6 +613,7 @@ export function TransactionForm({
               onPointerDown={(e) => e.preventDefault()}
               onClick={() => {
                 setIsRecurring(!isRecurring)
+                triggerHaptic('light')
                 keepAmountFocus()
               }}
               aria-pressed={isRecurring}
@@ -369,104 +630,17 @@ export function TransactionForm({
         </div>
       )}
 
-
-
-      {/* Amount + Category/Submit + Name */}
-      <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-2">
-        <label className="relative min-w-0">
-          <span className="sr-only">Amount</span>
-          <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-600">
-            {transactionType === "income"
-              ? <ArrowUpCircle className="h-4 w-4 text-emerald-500/80" aria-hidden="true" />
-              : transactionType === "expense"
-              ? <ArrowDownCircle className="h-4 w-4 text-rose-500/80" aria-hidden="true" />
-              : <ArrowLeftRight className="h-4 w-4 text-blue-500/80" aria-hidden="true" />
-            }
-          </span>
-          <input
-            ref={inputRef}
-            autoFocus
-            type="text"
-            inputMode="decimal"
-            placeholder="Amount..."
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            onBlur={handleAmountBlur}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") resolveAndSubmit()
-              if (e.key === "Escape" && isEditing && onCancelEdit) onCancelEdit()
-            }}
-            className="h-11 w-full rounded-xl border border-slate-800/50 bg-slate-950/50 pl-9 pr-3 text-sm text-white placeholder:text-slate-600 outline-none focus:border-slate-700"
-          />
-          {calcPreview && (
-            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[10px] font-medium text-slate-500">
-              = {calcPreview}
-            </span>
-          )}
-        </label>
-
-        {!isTransfer && (
-          <CategorySelect categories={categories} value={category} onChange={setCategory} onKeepInputFocus={keepAmountFocus} />
-        )}
-
-        {!isEditing && (
-          <button
-            type="button"
-            onPointerDown={(e) => e.preventDefault()}
-            onClick={resolveAndSubmit}
-            aria-label={isTransfer ? "Execute transfer" : "Add transaction"}
-            className={`flex h-11 w-11 items-center justify-center rounded-xl text-white transition-all hover:scale-105 active:scale-95 ${
-              isTransfer
-                ? "bg-blue-600"
-                : "bg-rose-600"
-            }`}
-          >
-            <Plus className="h-5 w-5" aria-hidden="true" />
-          </button>
-        )}
-      </div>
-
-      {/* Name field (optional, below amount row) */}
-      {!isTransfer && (
-        <label className="relative w-full">
-          <span className="sr-only">Name</span>
-          <input
-            type="text"
-            placeholder="Name (optional)"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="h-11 w-full rounded-xl border border-slate-800/50 bg-slate-950/50 px-3 text-sm text-white placeholder:text-slate-600 outline-none focus:border-slate-700"
-          />
-        </label>
-      )}
-
-      {/* Math keyboard accessory bar for iOS */}
-      <div className="mt-3 flex items-center gap-1 overflow-x-auto scrollbar-none">
-        {["+", "-", "*", "/", "(", ")"].map((sym) => (
-          <button
-            key={sym}
-            type="button"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => insertCharAtCursor(sym)}
-            className="h-8 w-8 shrink-0 rounded-lg border border-slate-800/40 bg-slate-950/30 text-xs font-semibold text-slate-500 transition-colors hover:border-slate-700/50 hover:text-slate-400 active:scale-95"
-            aria-label={`Insert ${sym}`}
-          >
-            {sym}
-          </button>
-        ))}
-      </div>
-
-      {/* Quick Templates + Smart Paste */}
+      {/* Destination + Monthly toggle */}
       {!isEditing && (
-        <div className="relative overflow-hidden">
-          <div className="fade-edge-r -mx-0.5 flex w-full items-center gap-1.5 overflow-x-auto whitespace-nowrap pb-0.5 pl-0.5 pr-6 scrollbar-none [touch-action:pan-x] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+        <div className="relative -mx-3 px-3">
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             <button
               type="button"
               onPointerDown={(e) => e.preventDefault()}
-            onClick={() => {
-              handleSmartPaste()
-              keepAmountFocus()
-            }}
+              onClick={() => {
+                handleSmartPaste()
+                keepAmountFocus()
+              }}
               aria-label="Paste amount from clipboard"
               title="Paste from clipboard"
               className="flex shrink-0 items-center gap-1.5 rounded-full border border-slate-800/40 bg-slate-950/30 px-2.5 py-1.5 text-[11px] font-medium text-slate-500 transition-colors hover:border-slate-700/50 hover:text-slate-400"
@@ -483,6 +657,7 @@ export function TransactionForm({
                   onPointerDown={(e) => e.preventDefault()}
                   onClick={() => {
                     onApplyTemplate(t)
+                    triggerHaptic('light')
                     keepAmountFocus()
                   }}
                   aria-label={`Quick add ${t.label}: ${t.amount} ${currency === "UAH" ? "₴" : currency === "USD" ? "$" : "€"}`}
@@ -498,8 +673,9 @@ export function TransactionForm({
         </div>
       )}
 
-      {isEditing ? (
-        <div className="flex justify-end gap-2">
+      {/* Submit Button */}
+      <div className="flex justify-end gap-2 pt-2">
+        {isEditing && (
           <button
             type="button"
             onClick={onCancelEdit}
@@ -508,16 +684,21 @@ export function TransactionForm({
           >
             <X className="h-5 w-5" aria-hidden="true" />
           </button>
-          <button
-            type="button"
-            onClick={resolveAndSubmit}
-            aria-label="Update transaction"
-            className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-lg shadow-blue-600/40 transition-transform hover:scale-105 active:scale-95"
-          >
-            <Check className="h-5 w-5" aria-hidden="true" />
-          </button>
-        </div>
-      ) : null}
+        )}
+        <button
+          type="button"
+          onClick={resolveAndSubmit}
+          aria-label={isTransfer ? "Execute transfer" : "Add transaction"}
+          className={`flex h-12 flex-1 items-center justify-center gap-2 rounded-xl text-white font-semibold transition-all hover:scale-[1.02] active:scale-[0.98] ${
+            isTransfer
+              ? "bg-blue-600"
+              : "bg-gradient-to-r from-rose-600 to-rose-500 shadow-lg shadow-rose-600/30"
+          }`}
+        >
+          <Plus className="h-5 w-5" aria-hidden="true" />
+          <span>{isEditing ? "Update" : isTransfer ? "Transfer" : "Add"}</span>
+        </button>
+      </div>
     </div>
   )
 }
