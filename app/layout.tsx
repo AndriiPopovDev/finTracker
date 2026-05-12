@@ -14,24 +14,10 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'Financial Tracker',
-  description: 'Track your monthly income and expenses in Ukrainian Hryvnia (₴).',
-  generator: 'v0.app',
+  title: 'FinTracker',
+  description: 'Calm, intelligent expense tracking. Your personal finance companion.',
   icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
+    icon: '/icon.svg',
     apple: '/apple-icon.png',
   },
 }
@@ -44,6 +30,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="bg-[#0b1120]">
       <body className="font-sans antialiased bg-[#0b1120] text-slate-200">
+        <link rel="manifest" href="/manifest.json" />
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>

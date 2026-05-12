@@ -1,0 +1,17 @@
+{
+  "name": "fintracker",
+  "short_name": "FinTracker",
+  "description": "Calm, intelligent expense tracking",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b1120",
+  "theme_color": "#0b1120",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

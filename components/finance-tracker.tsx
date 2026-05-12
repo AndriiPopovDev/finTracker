@@ -25,8 +25,7 @@ import { TransactionForm } from "@/components/transaction-form"
 import { SpendingChart } from "@/components/spending-chart"
 import { SmartInsightCard, ErrorBoundary, SubscriptionIntelligence, SmartSearch, CalendarHeatmap, CashflowTimeline, MonthlyReview, SmartTimeline, SpendingBehaviorCard, SavingsGoals } from "@/components/ui"
 import type { SavingsGoal } from "@/components/ui/savings-goals"
-import { detectRecurringPatterns, analyzeDailySpending, analyzeSpendingBehavior, type RecurringPattern, type SpendingBehavior } from "@/lib/smart-insights"
-import { getEmotionalState, getEmotionalBackgroundGradient } from "@/lib/emotional-ui"
+import { detectRecurringPatterns, analyzeSpendingBehavior, type RecurringPattern, type SpendingBehavior } from "@/lib/smart-insights"
 
 const DEFAULT_PLAN = 25000
 const RECURRING_KEY = "recurring_transactions_v1"

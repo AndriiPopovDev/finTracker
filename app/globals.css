@@ -119,10 +119,13 @@
   * {
     @apply border-border outline-ring/50;
     touch-action: manipulation;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
   body {
     @apply bg-background text-foreground;
     touch-action: pan-x pan-y;
+    overscroll-behavior: none;
   }
 }
 
