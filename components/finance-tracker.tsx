@@ -15,7 +15,7 @@ import {
   type TransactionDestination,
   type TransactionType,
 } from "@/lib/finance"
-import { exportAllData, importDataFromFile } from "@/lib/data-transfer"
+import { exportAllData, importDataFromFile, type ImportSummary, collectAllLocalStorageData } from "@/lib/data-transfer"
 import { FinanceHeader } from "@/components/finance-header"
 import { BalanceCard } from "@/components/balance-card"
 import { SummaryCards } from "@/components/summary-cards"
@@ -633,13 +633,35 @@ export function FinanceTracker() {
         monthlySubsOpen={monthlySubsOpen}
         quickTemplates={quickTemplates}
         setQuickTemplates={setQuickTemplates}
-        onImportSuccess={() => {
+        onImportSuccess={(summary) => {
+          // Reload all state from localStorage
           const savedTx = window.localStorage.getItem(monthKey)
           setTransactions(savedTx ? (JSON.parse(savedTx) as Transaction[]) : [])
           const savedPlan = window.localStorage.getItem(planKey)
           setPlan(savedPlan ? Number(savedPlan) : DEFAULT_PLAN)
+          
+          // Reload balances
+          const balancesRaw = window.localStorage.getItem("balances_v1")
+          if (balancesRaw) {
+            const parsed = JSON.parse(balancesRaw)
+            setCard(parsed.card ?? 0)
+            setCash(parsed.cash ?? 0)
+            setSavings(parsed.savings ?? 0)
+          }
+          
+          // Show success summary
+          window.alert(
+            `✓ Import Successful!\n\n` +
+            `📅 Exported: ${new Date(summary.exportedAt).toLocaleString()}\n` +
+            `📊 ${summary.totalTransactions} transactions\n` +
+            `📆 ${summary.months} months\n` +
+            `🔄 ${summary.recurring} recurring payments\n` +
+            `💰 Card: ${formatUAH(summary.balances.card, undefined, summary.currency)}\n` +
+            `💵 Cash: ${formatUAH(summary.balances.cash, undefined, summary.currency)}\n` +
+            `🏦 Savings: ${formatUAH(summary.balances.savings, undefined, summary.currency)}`
+          )
         }}
-        onImportError={(msg) => window.alert(`Import failed: ${msg}`)}
+        onImportError={(message: string) => window.alert(`✗ Import Failed: ${message}`)}
       />
     </main>
   )
@@ -685,7 +707,7 @@ function SettingsModal({
   quickTemplates: QuickTemplate[]
   setQuickTemplates: Dispatch<SetStateAction<QuickTemplate[]>>
   monthlySubsOpen: boolean
-  onImportSuccess: () => void
+  onImportSuccess: (summary: ImportSummary) => void
   onImportError: (message: string) => void
 }) {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -704,6 +726,27 @@ function SettingsModal({
   }, [open, plan, card, cash, savings])
 
   const handleImportClick = () => fileInputRef.current?.click()
+  const handleExportClick = () => {
+    // Collect data for summary
+    const collected = collectAllLocalStorageData()
+    
+    // Trigger download
+    exportAllData()
+    
+    // Show summary after export
+    setTimeout(() => {
+      window.alert(
+        `✓ Export Complete!\n\n` +
+        `📊 ${collected.entityCounts.totalTransactions} transactions\n` +
+        `📆 ${collected.entityCounts.months} months\n` +
+        `🔄 ${collected.entityCounts.recurring} recurring payments\n` +
+        `💰 Card: ${formatUAH(collected.balances.card)}\n` +
+        `💵 Cash: ${formatUAH(collected.balances.cash)}\n` +
+        `🏦 Savings: ${formatUAH(collected.balances.savings)}`
+      )
+    }, 300)
+  }
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -826,7 +869,7 @@ function SettingsModal({
                   </button>
                   <button
                     type="button"
-                    onClick={exportAllData}
+                    onClick={handleExportClick}
                     className="rounded-xl border border-slate-800/50 bg-slate-900/30 p-3 text-slate-400 transition-colors hover:border-slate-700/50 hover:text-slate-300"
                     aria-label="Export backup JSON"
                   >
