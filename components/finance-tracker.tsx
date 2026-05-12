@@ -176,6 +176,16 @@ export function FinanceTracker() {
     }
   }, [plan, planKey, hydrated])
 
+  // Persist recurring templates (sync from auto-detection in transaction form)
+  useEffect(() => {
+    if (!hydrated || typeof window === "undefined") return
+    if (recurringTemplates.length === 0) {
+      window.localStorage.removeItem(RECURRING_KEY)
+    } else {
+      window.localStorage.setItem(RECURRING_KEY, JSON.stringify(recurringTemplates))
+    }
+  }, [recurringTemplates, hydrated])
+
   useEffect(() => {
     if (!hydrated || typeof window === "undefined") return
     window.localStorage.setItem(CURRENCY_KEY, currency)
@@ -1076,10 +1086,14 @@ function MonthlySubscriptionsManager({
         name: "New subscription",
         amount: 100,
         category: "Personal",
-        type: "expense",
-        destination: "card",
+        type: "expense" as const,
+        destination: "card" as const,
       },
     ])
+  }
+
+  const deleteTemplate = (id: string) => {
+    setTemplates((prev) => prev.filter((t) => t.id !== id))
   }
 
   return (
@@ -1117,7 +1131,7 @@ function MonthlySubscriptionsManager({
                 </select>
                 <button
                   type="button"
-                  onClick={() => setTemplates((prev) => prev.filter((t) => t.id !== template.id))}
+                  onClick={() => deleteTemplate(template.id)}
                   className="rounded-xl border border-slate-700 p-2.5 text-slate-400 hover:text-rose-400"
                   aria-label={`Delete subscription ${template.name}`}
                 >

@@ -46,6 +46,9 @@ export type FinanceBackupV2 = {
     [monthKey: string]: Transaction[]
   }
   recurring: RecurringTemplate[]
+  plans: {
+    [planKey: string]: number
+  }
   settings: UserSettings
 }
 
@@ -77,6 +80,7 @@ export function collectAllLocalStorageData(): {
   balances: AccountBalances
   transactions: FinanceBackupV2["transactions"]
   recurring: RecurringTemplate[]
+  plans: { [planKey: string]: number }
   settings: UserSettings
   entityCounts: {
     months: number
@@ -89,6 +93,7 @@ export function collectAllLocalStorageData(): {
       balances: { card: 0, cash: 0, savings: 0 },
       transactions: {},
       recurring: [],
+      plans: {},
       settings: { currency: "UAH", monthlyPlan: DEFAULT_PLAN, quickTemplates: [] },
       entityCounts: { months: 0, totalTransactions: 0, recurring: 0 },
     }
@@ -139,19 +144,27 @@ export function collectAllLocalStorageData(): {
     ? JSON.parse(templatesRaw)
     : []
 
-  // Collect monthly plan (from current month)
+  // Collect ALL monthly plans
+  const plans: { [planKey: string]: number } = {}
   const currentMonth = new Date()
-  const planKey = `plan_${currentMonth.getFullYear()}_${String(currentMonth.getMonth() + 1).padStart(2, "0")}`
-  const planRaw = window.localStorage.getItem(planKey)
-  const monthlyPlan = planRaw ? Number(planRaw) : DEFAULT_PLAN
+  const allKeys = Object.keys(window.localStorage)
+  const planKeys = allKeys.filter(key => key.startsWith('plan_'))
+  
+  planKeys.forEach(key => {
+    const planRaw = window.localStorage.getItem(key)
+    if (planRaw) {
+      plans[key] = Number(planRaw)
+    }
+  })
 
   return {
     balances,
     transactions,
     recurring,
+    plans,
     settings: {
       currency,
-      monthlyPlan,
+      monthlyPlan: plans[`plan_${currentMonth.getFullYear()}_${String(currentMonth.getMonth() + 1).padStart(2, "0")}`] || DEFAULT_PLAN,
       quickTemplates,
     },
     entityCounts: {
@@ -176,6 +189,7 @@ export function exportAllData(): void {
     accounts: collected.balances,
     transactions: collected.transactions,
     recurring: collected.recurring,
+    plans: collected.plans,
     settings: collected.settings,
   }
 
@@ -217,6 +231,7 @@ function migrateV1ToV2(backup: FinanceBackupV1): FinanceBackupV2 {
     accounts: balances,
     transactions: backup.data,
     recurring: [],
+    plans: backup.plans || {},
     settings: {
       currency,
       monthlyPlan,
@@ -399,10 +414,17 @@ function importBackupV2(
   window.localStorage.setItem(CURRENCY_KEY, backup.settings.currency)
   window.localStorage.setItem(QUICK_TEMPLATES_KEY, JSON.stringify(backup.settings.quickTemplates))
 
-  // Restore monthly plans (extract from plan keys)
-  const currentMonth = new Date()
-  const planKey = `plan_${currentMonth.getFullYear()}_${String(currentMonth.getMonth() + 1).padStart(2, "0")}`
-  window.localStorage.setItem(planKey, String(backup.settings.monthlyPlan))
+  // Restore ALL monthly plans from backup
+  if (backup.plans && Object.keys(backup.plans).length > 0) {
+    for (const [planKey, planValue] of Object.entries(backup.plans)) {
+      window.localStorage.setItem(planKey, String(planValue))
+    }
+  } else {
+    // Fallback: restore current month's plan from settings
+    const currentMonth = new Date()
+    const planKey = `plan_${currentMonth.getFullYear()}_${String(currentMonth.getMonth() + 1).padStart(2, "0")}`
+    window.localStorage.setItem(planKey, String(backup.settings.monthlyPlan))
+  }
 
   // Calculate import summary
   const monthCount = Object.keys(backup.transactions).length
