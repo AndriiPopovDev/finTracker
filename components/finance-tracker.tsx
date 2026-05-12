@@ -16,6 +16,7 @@ import {
   type TransactionType,
 } from "@/lib/finance"
 import { exportAllData, importDataFromFile, type ImportSummary, collectAllLocalStorageData } from "@/lib/data-transfer"
+import { generateSmartInsights, type SmartInsight } from "@/lib/smart-insights"
 import { triggerHaptic } from "@/lib/haptic"
 import { FinanceHeader } from "@/components/finance-header"
 import { BalanceCard } from "@/components/balance-card"
@@ -23,6 +24,7 @@ import { SummaryCards } from "@/components/summary-cards"
 import { TransactionForm } from "@/components/transaction-form"
 import { SpendingChart } from "@/components/spending-chart"
 import { TransactionList } from "@/components/transaction-list"
+import { SmartInsightCard } from "@/components/ui"
 
 const DEFAULT_PLAN = 25000
 const RECURRING_KEY = "recurring_transactions_v1"
@@ -235,6 +237,36 @@ export function FinanceTracker() {
     const avgDaily = dayOfMonth > 0 ? totalExpense / dayOfMonth : 0
     return (plan - totalExpense) - avgDaily * daysLeft
   }, [date, plan, totalExpense])
+
+  // Smart insights calculation
+  const smartInsights = useMemo(() => {
+    if (!hydrated) return []
+
+    // Get previous month's data
+    const prevMonth = new Date(date.getFullYear(), date.getMonth() - 1, 1)
+    const prevMonthKey = getMonthKey(prevMonth)
+    const prevMonthData = window.localStorage.getItem(prevMonthKey)
+    const prevTransactions: Transaction[] = prevMonthData ? JSON.parse(prevMonthData) : []
+
+    // Get historical data (last 3 months)
+    const historicalTransactions: Transaction[] = []
+    for (let i = 1; i <= 3; i++) {
+      const histMonth = new Date(date.getFullYear(), date.getMonth() - i, 1)
+      const histKey = getMonthKey(histMonth)
+      const histData = window.localStorage.getItem(histKey)
+      if (histData) {
+        historicalTransactions.push(...JSON.parse(histData))
+      }
+    }
+
+    return generateSmartInsights(
+      transactions,
+      prevTransactions,
+      historicalTransactions,
+      date,
+      plan
+    )
+  }, [transactions, date, plan, hydrated])
 
   const applyTemplate = (template: QuickTemplate) => {
     setAmount(String(template.amount))
@@ -508,6 +540,8 @@ export function FinanceTracker() {
         />
 
         <SummaryCards totalIncome={totalIncome} totalExpense={totalExpense} currency={currency} />
+
+        <SmartInsightCard insights={smartInsights} />
 
         <SpendingChart 
           data={chartData} 
