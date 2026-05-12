@@ -118,6 +118,22 @@ export type AnomalyResult = {
   severity: 'low' | 'medium' | 'high'
 }
 
+export type SpendingBehavior = {
+  noSpendStreak: number
+  healthyWeeks: number
+  overspendingDays: number
+  savingsStreak: number
+  spendingScore: number // 0-100, higher is better
+  behaviorInsights: BehaviorInsight[]
+}
+
+export type BehaviorInsight = {
+  type: 'streak' | 'warning' | 'achievement' | 'suggestion'
+  message: string
+  icon: string
+  priority: 'high' | 'medium' | 'low'
+}
+
 export type MerchantRecognition = {
   pattern: string
   category: string
@@ -522,6 +538,160 @@ export function generateSmartInsights(
     const priorityOrder = { high: 0, medium: 1, low: 2 }
     return priorityOrder[a.priority] - priorityOrder[b.priority]
   }).slice(0, 4) // Max 4 insights to avoid clutter
+}
+
+export function analyzeSpendingBehavior(
+  transactions: Transaction[],
+  currentMonth: Date,
+  prevMonthTransactions: Transaction[]
+): SpendingBehavior {
+  const now = new Date()
+  const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate()
+  const isCurrentMonth = now.getFullYear() === currentMonth.getFullYear() && now.getMonth() === currentMonth.getMonth()
+  const daysElapsed = isCurrentMonth ? now.getDate() : daysInMonth
+
+  // Calculate daily totals
+  const dailyTotals = new Map<string, number>()
+  transactions
+    .filter(t => t.type === 'expense')
+    .forEach(t => {
+      const normalizedDate = normalizeDate(t.date)
+      if (normalizedDate) {
+        dailyTotals.set(normalizedDate, (dailyTotals.get(normalizedDate) || 0) + t.amount)
+      }
+    })
+
+  // No-spend streak (from today backwards)
+  let noSpendStreak = 0
+  for (let i = 0; i < daysElapsed; i++) {
+    const checkDate = new Date(now)
+    checkDate.setDate(checkDate.getDate() - i)
+    const dateKey = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`
+    if (!dailyTotals.has(dateKey)) {
+      noSpendStreak++
+    } else {
+      break
+    }
+  }
+
+  // Savings streak (consecutive days with income > expense)
+  const incomeByDate = new Map<string, number>()
+  transactions
+    .filter(t => t.type === 'income')
+    .forEach(t => {
+      const normalizedDate = normalizeDate(t.date)
+      if (normalizedDate) {
+        incomeByDate.set(normalizedDate, (incomeByDate.get(normalizedDate) || 0) + t.amount)
+      }
+    })
+
+  let savingsStreak = 0
+  for (let i = 0; i < daysElapsed; i++) {
+    const checkDate = new Date(now)
+    checkDate.setDate(checkDate.getDate() - i)
+    const dateKey = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`
+    const income = incomeByDate.get(dateKey) || 0
+    const expense = dailyTotals.get(dateKey) || 0
+    
+    if (income > expense && expense > 0) {
+      savingsStreak++
+    } else if (expense === 0 && income > 0) {
+      savingsStreak++ // Pure savings day
+    } else {
+      break
+    }
+  }
+
+  // Healthy weeks (weeks where spending < average)
+  const avgDailyExpense = daysElapsed > 0 
+    ? Array.from(dailyTotals.values()).reduce((sum, amt) => sum + amt, 0) / daysElapsed 
+    : 0
+  
+  let healthyWeeks = 0
+  for (let week = 0; week < Math.floor(daysElapsed / 7); week++) {
+    let weekTotal = 0
+    for (let day = 0; day < 7; day++) {
+      const checkDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), week * 7 + day + 1)
+      const dateKey = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`
+      weekTotal += dailyTotals.get(dateKey) || 0
+    }
+    if (weekTotal / 7 < avgDailyExpense) {
+      healthyWeeks++
+    }
+  }
+
+  // Overspending days (days with >2x average daily spending)
+  const overspendingDays = Array.from(dailyTotals.entries())
+    .filter(([, amount]) => amount > avgDailyExpense * 2)
+    .length
+
+  // Spending score (0-100)
+  const totalExpense = Array.from(dailyTotals.values()).reduce((sum, amt) => sum + amt, 0)
+  const totalIncome = Array.from(incomeByDate.values()).reduce((sum, amt) => sum + amt, 0)
+  
+  let spendingScore = 50 // Base score
+  if (totalIncome > 0) {
+    const savingsRate = (totalIncome - totalExpense) / totalIncome
+    spendingScore = Math.round(50 + savingsRate * 50) // 50-100 if saving, 0-50 if overspending
+  }
+  spendingScore = Math.max(0, Math.min(100, spendingScore))
+
+  // Generate behavior insights
+  const insights: BehaviorInsight[] = []
+
+  if (noSpendStreak >= 2) {
+    insights.push({
+      type: 'streak',
+      message: `${noSpendStreak} day no-spend streak`,
+      icon: '🌱',
+      priority: 'medium'
+    })
+  }
+
+  if (savingsStreak >= 2) {
+    insights.push({
+      type: 'achievement',
+      message: `${savingsStreak} day savings streak`,
+      icon: '💰',
+      priority: 'medium'
+    })
+  }
+
+  if (overspendingDays > 0 && isCurrentMonth) {
+    insights.push({
+      type: 'warning',
+      message: `${overspendingDays} overspending day${overspendingDays > 1 ? 's' : ''} this month`,
+      icon: '⚠️',
+      priority: 'high'
+    })
+  }
+
+  if (healthyWeeks >= 2) {
+    insights.push({
+      type: 'achievement',
+      message: `${healthyWeeks} healthy spending week${healthyWeeks > 1 ? 's' : ''}`,
+      icon: '✅',
+      priority: 'low'
+    })
+  }
+
+  if (spendingScore < 30 && totalExpense > 0) {
+    insights.push({
+      type: 'suggestion',
+      message: 'Consider reducing discretionary spending',
+      icon: '💡',
+      priority: 'high'
+    })
+  }
+
+  return {
+    noSpendStreak,
+    healthyWeeks,
+    overspendingDays,
+    savingsStreak,
+    spendingScore,
+    behaviorInsights: insights
+  }
 }
 
 // Smart search with natural language processing

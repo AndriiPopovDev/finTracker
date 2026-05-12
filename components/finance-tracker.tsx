@@ -23,9 +23,10 @@ import { BalanceCard } from "@/components/balance-card"
 import { SummaryCards } from "@/components/summary-cards"
 import { TransactionForm } from "@/components/transaction-form"
 import { SpendingChart } from "@/components/spending-chart"
-import { TransactionList } from "@/components/transaction-list"
-import { SmartInsightCard, ErrorBoundary, SubscriptionIntelligence, SmartSearch, CalendarHeatmap, CashflowTimeline, MonthlyReview } from "@/components/ui"
-import { detectRecurringPatterns, analyzeDailySpending, type RecurringPattern } from "@/lib/smart-insights"
+import { SmartInsightCard, ErrorBoundary, SubscriptionIntelligence, SmartSearch, CalendarHeatmap, CashflowTimeline, MonthlyReview, SmartTimeline, SpendingBehaviorCard, SavingsGoals } from "@/components/ui"
+import type { SavingsGoal } from "@/components/ui/savings-goals"
+import { detectRecurringPatterns, analyzeDailySpending, analyzeSpendingBehavior, type RecurringPattern, type SpendingBehavior } from "@/lib/smart-insights"
+import { getEmotionalState, getEmotionalBackgroundGradient } from "@/lib/emotional-ui"
 
 const DEFAULT_PLAN = 25000
 const RECURRING_KEY = "recurring_transactions_v1"
@@ -81,6 +82,7 @@ export function FinanceTracker() {
   const [showMonthlyReview, setShowMonthlyReview] = useState(false)
   const [showHeatmap, setShowHeatmap] = useState(false)
   const [showCashflow, setShowCashflow] = useState(false)
+  const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>([])
   const [name, setName] = useState("")
   const [isRecurring, setIsRecurring] = useState(false)
   const [recurringTemplates, setRecurringTemplates] = useState<RecurringTemplate[]>([])
@@ -129,6 +131,29 @@ export function FinanceTracker() {
       console.error('[FinanceTracker] Failed to persist balances:', error)
     }
   }, [card, cash, savings, hydrated])
+
+  // Load savings goals
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    try {
+      const raw = window.localStorage.getItem('savings_goals_v1')
+      if (raw) {
+        setSavingsGoals(JSON.parse(raw))
+      }
+    } catch (error) {
+      console.error('[FinanceTracker] Failed to load savings goals:', error)
+    }
+  }, [])
+
+  // Persist savings goals
+  useEffect(() => {
+    if (!hydrated || typeof window === "undefined") return
+    try {
+      window.localStorage.setItem('savings_goals_v1', JSON.stringify(savingsGoals))
+    } catch (error) {
+      console.error('[FinanceTracker] Failed to persist savings goals:', error)
+    }
+  }, [savingsGoals, hydrated])
 
   // Load transactions + plan for the active month
   useEffect(() => {
@@ -332,6 +357,25 @@ export function FinanceTracker() {
 
     return detectRecurringPatterns(allTransactions)
   }, [date, hydrated])
+
+  // Spending behavior analysis
+  const spendingBehavior = useMemo<SpendingBehavior>(() => {
+    if (!hydrated) return {
+      noSpendStreak: 0,
+      healthyWeeks: 0,
+      overspendingDays: 0,
+      savingsStreak: 0,
+      spendingScore: 50,
+      behaviorInsights: []
+    }
+
+    const prevMonth = new Date(date.getFullYear(), date.getMonth() - 1, 1)
+    const prevMonthKey = getMonthKey(prevMonth)
+    const prevMonthData = window.localStorage.getItem(prevMonthKey)
+    const prevTransactions: Transaction[] = prevMonthData ? JSON.parse(prevMonthData) : []
+
+    return analyzeSpendingBehavior(transactions, date, prevTransactions)
+  }, [transactions, date, hydrated])
 
   // All transactions for smart search
   const allTransactionsForSearch = useMemo(() => {
@@ -658,16 +702,6 @@ export function FinanceTracker() {
 
           <SubscriptionIntelligence patterns={subscriptionPatterns} currency={currency} />
 
-          <SmartSearch 
-            allTransactions={allTransactionsForSearch} 
-            currency={currency}
-            onTransactionSelect={(tx) => {
-              // Navigate to transaction date and show details
-              const txDate = new Date(tx.date)
-              setDate(txDate)
-            }}
-          />
-
           {/* Calendar Heatmap - Collapsible */}
           <motion.button
             whileTap={{ scale: 0.98 }}
@@ -774,6 +808,16 @@ export function FinanceTracker() {
             </p>
           </motion.button>
 
+          {/* Spending Behavior Card */}
+          <SpendingBehaviorCard behavior={spendingBehavior} />
+
+          {/* Savings Goals */}
+          <SavingsGoals
+            goals={savingsGoals}
+            onUpdateGoals={setSavingsGoals}
+            currency={currency}
+          />
+
           <SpendingChart 
             data={chartData} 
             totalExpense={totalExpense} 
@@ -783,15 +827,25 @@ export function FinanceTracker() {
             allTransactions={transactions}
           />
 
-          {showHistory && <HistoryView currentMonthKey={monthKey} onSelect={setDate} currency={currency} />}
+          {/* Smart Search */}
+          <SmartSearch 
+            allTransactions={allTransactionsForSearch} 
+            currency={currency}
+            onTransactionSelect={(tx) => {
+              const txDate = new Date(tx.date)
+              setDate(txDate)
+            }}
+          />
 
-          <TransactionList
+          {/* Smart Timeline */}
+          <SmartTimeline
             transactions={transactions}
-            periodLabel={periodLabel}
+            currency={currency}
             onDelete={deleteTransaction}
             onEdit={startEdit}
-            currency={currency}
           />
+
+          {showHistory && <HistoryView currentMonthKey={monthKey} onSelect={setDate} currency={currency} />}
         </ErrorBoundary>
       </div>
 
