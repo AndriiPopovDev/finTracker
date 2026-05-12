@@ -1,5 +1,9 @@
+import { motion } from "framer-motion"
 import { Repeat, PiggyBank } from "lucide-react"
 import { formatUAH, type CurrencyCode } from "@/lib/finance"
+import { triggerHaptic } from "@/lib/haptic"
+import { AnimatedCounter, StatCard } from "@/components/ui"
+import { ANIMATION } from "@/lib/theme"
 
 type Props = {
   card: number
@@ -33,9 +37,9 @@ export function BalanceCard({ card, cash, savings, monthlyTotal, currency, onCur
             <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
               Global Balance
             </p>
-            <h2 className="mt-1 text-3xl font-semibold tracking-tight text-white">
+            <AnimatedCounter className="mt-1 text-3xl font-semibold tracking-tight text-white">
               {formatUAH(globalBalance, undefined, currency)}
-            </h2>
+            </AnimatedCounter>
           </div>
 
           <div className="flex items-center gap-1.5">
@@ -44,11 +48,16 @@ export function BalanceCard({ card, cash, savings, monthlyTotal, currency, onCur
               { code: "USD", label: "$" },
               { code: "EUR", label: "€" },
             ] as const).map((item) => (
-              <button
+              <motion.button
                 key={item.code}
                 type="button"
-                onClick={() => onCurrencyChange(item.code)}
-                className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold transition-all active:scale-95 ${
+                onClick={() => {
+                  triggerHaptic('light')
+                  onCurrencyChange(item.code)
+                }}
+                whileTap={{ scale: 0.92 }}
+                transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold transition-all ${
                   currency === item.code
                     ? "bg-emerald-500/15 text-emerald-400"
                     : "text-slate-500 hover:text-slate-300"
@@ -57,40 +66,75 @@ export function BalanceCard({ card, cash, savings, monthlyTotal, currency, onCur
                 aria-pressed={currency === item.code}
               >
                 {item.label}
-              </button>
+              </motion.button>
             ))}
           </div>
         </div>
 
         {/* Account balances */}
         <div className="grid grid-cols-3 gap-2 mb-3">
-          <div className="rounded-lg bg-slate-900/40 px-2.5 py-2">
+          <div className="rounded-xl bg-slate-900/40 px-2.5 py-2">
             <p className="text-[10px] font-medium text-slate-500">Card</p>
-            <p className="mt-0.5 text-sm font-semibold text-slate-200">{formatUAH(card, undefined, currency)}</p>
+            <motion.p 
+              key={card}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.2 }}
+              className="mt-0.5 text-sm font-semibold text-slate-200"
+            >
+              {formatUAH(card, undefined, currency)}
+            </motion.p>
           </div>
-          <div className="rounded-lg bg-slate-900/40 px-2.5 py-2">
+          <div className="rounded-xl bg-slate-900/40 px-2.5 py-2">
             <p className="text-[10px] font-medium text-slate-500">Cash</p>
-            <p className="mt-0.5 text-sm font-semibold text-slate-200">{formatUAH(cash, undefined, currency)}</p>
+            <motion.p 
+              key={cash}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.2 }}
+              className="mt-0.5 text-sm font-semibold text-slate-200"
+            >
+              {formatUAH(cash, undefined, currency)}
+            </motion.p>
           </div>
-          <div className="rounded-lg bg-slate-900/40 px-2.5 py-2">
+          <div className="rounded-xl bg-slate-900/40 px-2.5 py-2">
             <div className="flex items-center gap-1">
               <Repeat className="h-3 w-3 text-purple-500/60" />
               <p className="text-[10px] font-medium text-slate-500">Monthly</p>
             </div>
-            <p className="mt-0.5 text-sm font-semibold text-purple-400/80">{formatUAH(monthlyTotal, undefined, currency)}</p>
+            <motion.p 
+              key={monthlyTotal}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.2 }}
+              className="mt-0.5 text-sm font-semibold text-purple-400/80"
+            >
+              {formatUAH(monthlyTotal, undefined, currency)}
+            </motion.p>
           </div>
         </div>
 
         {/* Savings - separated section */}
-        <div className="rounded-lg border border-slate-800/30 bg-slate-900/30 px-3 py-2.5 mb-3">
+        <motion.div 
+          whileTap={{ scale: 0.98 }}
+          className="rounded-xl border border-slate-800/30 bg-slate-900/30 px-3 py-2.5 mb-3 cursor-pointer transition-colors hover:bg-slate-900/50"
+        >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <PiggyBank className="h-3.5 w-3.5 text-slate-500" />
               <span className="text-xs font-medium text-slate-500">Savings</span>
             </div>
-            <span className="text-sm font-semibold text-slate-300">{formatUAH(savings, undefined, currency)}</span>
+            <motion.span 
+              key={savings}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.2 }}
+              className="text-sm font-semibold text-slate-300"
+            >
+              {formatUAH(savings, undefined, currency)}
+            </motion.span>
           </div>
-        </div>
+        </motion.div>
 
         {/* Remaining after monthly */}
         {monthlyTotal > 0 && (

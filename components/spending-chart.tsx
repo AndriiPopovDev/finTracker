@@ -5,6 +5,8 @@ import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts"
 import { motion, AnimatePresence } from "framer-motion"
 import { ChartPie as PieIcon, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Wallet, CalendarDays } from "lucide-react"
 import { CATEGORIES, COLORS, formatUAH, getCategoryEmoji, type CurrencyCode, type Transaction, getMonthKey } from "@/lib/finance"
+import { triggerHaptic } from "@/lib/haptic"
+import { InsightCard, InsightGrid } from "@/components/ui"
 
 type ChartDatum = { name: string; value: number }
 
@@ -115,6 +117,7 @@ export function SpendingChart({ data, totalExpense, currency, forecastValue, cur
   }, [hasData, currentDate, totalExpense, data, prevMonthData, forecastValue])
 
   const handleSliceClick = (index: number) => {
+    triggerHaptic('light')
     setSelectedIndex(index === selectedIndex ? null : index)
   }
 
@@ -140,14 +143,17 @@ export function SpendingChart({ data, totalExpense, currency, forecastValue, cur
                   dataKey="value"
                   stroke="none"
                   onClick={(_, index) => handleSliceClick(index)}
-                  style={{ cursor: "pointer" }}
+                  style={{ cursor: "pointer", outline: 'none' }}
                 >
                   {data.map((_, i) => (
                     <Cell 
                       key={i} 
                       fill={COLORS[i % COLORS.length]}
                       opacity={selectedIndex === null || selectedIndex === i ? 1 : 0.4}
-                      style={{ transition: "opacity 0.2s ease" }}
+                      style={{ 
+                        transition: "opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                        filter: selectedIndex === i ? 'brightness(1.1)' : 'none'
+                      }}
                     />
                   ))}
                 </Pie>
@@ -236,12 +242,16 @@ export function SpendingChart({ data, totalExpense, currency, forecastValue, cur
               const barColor = catInfo?.color ?? COLORS[i % COLORS.length]
               const isSelected = selectedIndex === i
               return (
-                <li 
+                <motion.li 
                   key={d.name} 
                   className={`space-y-1.5 cursor-pointer transition-all duration-200 ${
                     isSelected ? "opacity-100" : "opacity-80 hover:opacity-100"
                   }`}
-                  onClick={() => handleSliceClick(i)}
+                  onClick={() => {
+                    triggerHaptic('light')
+                    handleSliceClick(i)
+                  }}
+                  whileTap={{ scale: 0.98 }}
                 >
                   <div className="flex items-start justify-between text-sm">
                     <span className="flex items-center gap-2 text-slate-300">
@@ -259,13 +269,16 @@ export function SpendingChart({ data, totalExpense, currency, forecastValue, cur
                     </div>
                   </div>
                   <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800/50">
-                    <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{ width: `${pct}%`, backgroundColor: barColor }}
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${pct}%` }}
+                      transition={{ duration: 0.5, ease: "easeOut", delay: i * 0.05 }}
+                      className="h-full rounded-full"
+                      style={{ backgroundColor: barColor }}
                       aria-hidden="true"
                     />
                   </div>
-                </li>
+                </motion.li>
               )
             })}
           </ul>
@@ -291,60 +304,51 @@ export function SpendingChart({ data, totalExpense, currency, forecastValue, cur
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <InsightGrid>
             {/* Predicted Balance */}
-            <div className="rounded-lg bg-slate-900/50 p-2.5">
-              <div className="flex items-center gap-1.5 mb-1">
-                <CalendarDays className="h-3 w-3 text-slate-500" />
-                <span className="text-[10px] text-slate-500">Month-End Forecast</span>
-              </div>
-              <p className={`text-sm font-semibold ${forecastClass}`}>
-                {formatUAH(insights.predictedBalance, undefined, currency)}
-              </p>
-            </div>
+            <InsightCard
+              icon={<CalendarDays className="h-3 w-3" />}
+              label="Month-End Forecast"
+              value={formatUAH(insights.predictedBalance, undefined, currency)}
+              delay={0.1}
+              className={forecastClass}
+            />
 
             {/* Biggest Category */}
-            <div className="rounded-lg bg-slate-900/50 p-2.5">
-              <div className="flex items-center gap-1.5 mb-1">
-                <span className="text-[10px] text-slate-500">Top Category</span>
-              </div>
-              <p className="text-sm font-semibold text-slate-200">
-                {getCategoryEmoji("expense", insights.biggestCategory)} {insights.biggestCategory}
-              </p>
-            </div>
+            <InsightCard
+              label="Top Category"
+              value={`${getCategoryEmoji("expense", insights.biggestCategory)} ${insights.biggestCategory}`}
+              delay={0.15}
+            />
 
             {/* Average Daily */}
-            <div className="rounded-lg bg-slate-900/50 p-2.5">
-              <div className="flex items-center gap-1.5 mb-1">
-                <span className="text-[10px] text-slate-500">Daily Average</span>
-              </div>
-              <p className="text-sm font-semibold text-slate-200">
-                {formatUAH(insights.avgDailySpending, undefined, currency)}
-              </p>
-            </div>
+            <InsightCard
+              label="Daily Average"
+              value={formatUAH(insights.avgDailySpending, undefined, currency)}
+              delay={0.2}
+            />
 
             {/* Trend */}
-            <div className="rounded-lg bg-slate-900/50 p-2.5">
-              <div className="flex items-center gap-1.5 mb-1">
-                {insights.trend === "up" ? (
-                  <TrendingUp className="h-3 w-3 text-rose-500" />
+            <InsightCard
+              icon={
+                insights.trend === "up" ? (
+                  <TrendingUp className="h-3 w-3" />
                 ) : insights.trend === "down" ? (
-                  <TrendingDown className="h-3 w-3 text-emerald-500" />
+                  <TrendingDown className="h-3 w-3" />
                 ) : (
                   <span className="text-xs">→</span>
-                )}
-                <span className="text-[10px] text-slate-500">Monthly Trend</span>
-              </div>
-              <p className={`text-sm font-semibold ${
-                insights.trend === "up" ? "text-rose-500" : 
-                insights.trend === "down" ? "text-emerald-500" : 
+                )
+              }
+              label="Monthly Trend"
+              value={`${insights.trend === "up" ? "↑" : insights.trend === "down" ? "↓" : "→"} ${Math.round(insights.trendPercentage)}% vs last month`}
+              delay={0.25}
+              className={
+                insights.trend === "up" ? "text-rose-500" :
+                insights.trend === "down" ? "text-emerald-500" :
                 "text-slate-400"
-              }`}>
-                {insights.trend === "up" ? "↑" : insights.trend === "down" ? "↓" : "→"}{" "}
-                {Math.round(insights.trendPercentage)}% vs last month
-              </p>
-            </div>
-          </div>
+              }
+            />
+          </InsightGrid>
         </motion.div>
       )}
 

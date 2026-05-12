@@ -1,3 +1,4 @@
+import { motion } from "framer-motion"
 import { ArrowDownCircle, ArrowUpCircle } from "lucide-react"
 import { formatUAH, type CurrencyCode } from "@/lib/finance"
 
@@ -13,7 +14,11 @@ export function SummaryCards({ totalIncome, totalExpense, currency }: Props) {
 
   return (
     <div className="grid grid-cols-2 gap-2">
-      <div className="relative overflow-hidden rounded-xl bg-slate-950 p-3">
+      <motion.div 
+        whileTap={{ scale: 0.97 }}
+        transition={{ type: "spring", stiffness: 400, damping: 25 }}
+        className="relative overflow-hidden rounded-xl bg-slate-950 p-3 cursor-pointer transition-colors hover:bg-slate-900/80"
+      >
         <div
           aria-hidden="true"
           className="pointer-events-none absolute -right-10 -top-10 h-20 w-20 rounded-full bg-emerald-500/3 blur-[30px]"
@@ -24,12 +29,22 @@ export function SummaryCards({ totalIncome, totalExpense, currency }: Props) {
             Income
           </span>
         </div>
-        <p className="relative mt-1.5 text-base font-semibold text-emerald-400">
+        <motion.p 
+          key={totalIncome}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.2 }}
+          className="relative mt-1.5 text-base font-semibold text-emerald-400"
+        >
           {formatUAH(Math.abs(totalIncome), "plus", currency)}
-        </p>
-      </div>
+        </motion.p>
+      </motion.div>
 
-      <div className="relative overflow-hidden rounded-xl bg-slate-950 p-3">
+      <motion.div 
+        whileTap={{ scale: 0.97 }}
+        transition={{ type: "spring", stiffness: 400, damping: 25 }}
+        className="relative overflow-hidden rounded-xl bg-slate-950 p-3 cursor-pointer transition-colors hover:bg-slate-900/80"
+      >
         <div
           aria-hidden="true"
           className="pointer-events-none absolute -right-10 -top-10 h-20 w-20 rounded-full bg-rose-500/3 blur-[30px]"
@@ -40,10 +55,16 @@ export function SummaryCards({ totalIncome, totalExpense, currency }: Props) {
             Expenses
           </span>
         </div>
-        <p className="relative mt-1.5 text-base font-semibold text-rose-400">
+        <motion.p 
+          key={totalExpense}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.2 }}
+          className="relative mt-1.5 text-base font-semibold text-rose-400"
+        >
           {formatUAH(Math.abs(totalExpense), "minus", currency)}
-        </p>
-      </div>
+        </motion.p>
+      </motion.div>
     </div>
   )
 }

@@ -16,6 +16,7 @@ import {
   type TransactionType,
 } from "@/lib/finance"
 import { exportAllData, importDataFromFile, type ImportSummary, collectAllLocalStorageData } from "@/lib/data-transfer"
+import { triggerHaptic } from "@/lib/haptic"
 import { FinanceHeader } from "@/components/finance-header"
 import { BalanceCard } from "@/components/balance-card"
 import { SummaryCards } from "@/components/summary-cards"
@@ -472,7 +473,7 @@ export function FinanceTracker() {
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#0b1120] text-slate-200 font-sans">
+    <main className="scroll-smooth relative min-h-screen overflow-hidden bg-[#0b1120] text-slate-200 font-sans">
       {/* ambient page gradients */}
       <div
         aria-hidden="true"
@@ -531,7 +532,10 @@ export function FinanceTracker() {
       {/* FAB */}
       <motion.button
         type="button"
-        onClick={openSheetForNew}
+        onClick={() => {
+          triggerHaptic('medium')
+          openSheetForNew()
+        }}
         aria-label="Add transaction"
         initial={false}
         animate={{ 
@@ -539,8 +543,15 @@ export function FinanceTracker() {
           opacity: fabVisible ? 1 : 0,
           pointerEvents: fabVisible ? "auto" : "none"
         }}
-        transition={{ duration: 0.2, ease: "easeInOut" }}
-        className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-4 left-4 max-w-md mx-auto z-30 flex h-14 items-center justify-center rounded-full bg-rose-600 text-white shadow-lg shadow-rose-600/30 active:scale-95"
+        transition={{ 
+          type: "spring", 
+          stiffness: 400, 
+          damping: 25,
+          mass: 0.8 
+        }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.92 }}
+        className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-4 left-4 max-w-md mx-auto z-30 flex h-14 items-center justify-center rounded-full bg-rose-600 text-white shadow-lg shadow-rose-600/30"
       >
         <Plus className="h-6 w-6" aria-hidden="true" />
       </motion.button>
@@ -565,8 +576,14 @@ export function FinanceTracker() {
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
-              transition={{ type: "spring", stiffness: 400, damping: 35, mass: 0.7 }}
-              className="fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-md max-h-[75dvh] overflow-y-auto overscroll-contain rounded-t-3xl border border-slate-800/50 bg-slate-950/95 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 shadow-2xl shadow-black/50 backdrop-blur-xl"
+              transition={{ 
+                type: "spring", 
+                stiffness: 350, 
+                damping: 30, 
+                mass: 0.8,
+                restDelta: 0.001
+              }}
+              className="fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-md max-h-[75dvh] overflow-y-auto overscroll-contain rounded-t-3xl border border-slate-800/50 bg-slate-950/95 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 shadow-2xl shadow-black/50"
             >
               {/* Drag handle */}
               <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-700" aria-hidden="true" />

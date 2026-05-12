@@ -1,8 +1,10 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import { motion } from "framer-motion"
 import { CircleArrowDown as ArrowDownCircle, CircleArrowUp as ArrowUpCircle, ArrowLeftRight, Repeat, Pencil, Trash2, ChevronDown } from "lucide-react"
 import { formatUAH, getCategoryEmoji, type CurrencyCode, type Transaction } from "@/lib/finance"
+import { triggerHaptic } from "@/lib/haptic"
 
 type Props = {
   transactions: Transaction[]
@@ -104,9 +106,14 @@ export function TransactionList({ transactions, periodLabel, onDelete, onEdit, c
             const signedAmount = t.type === "income" ? Math.abs(t.amount) : t.type === "expense" ? -Math.abs(t.amount) : 0
             const isIncome = signedAmount > 0
             return (
-              <div
+              <motion.div
                 key={t.id}
-                className="flex items-center gap-2.5 rounded-xl bg-slate-950/40 px-3 py-2.5 min-h-[56px]"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+                whileTap={{ scale: 0.98 }}
+                className="flex items-center gap-2.5 rounded-xl bg-slate-950/40 px-3 py-2.5 min-h-[56px] cursor-pointer transition-colors hover:bg-slate-900/60"
+                onClick={() => triggerHaptic('light')}
               >
                 <span
                   className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border ${
@@ -188,7 +195,7 @@ export function TransactionList({ transactions, periodLabel, onDelete, onEdit, c
                 >
                   <Trash2 className="h-4 w-4" aria-hidden="true" />
                 </button>
-              </div>
+              </motion.div>
             )
                   })}
                 </ul>
