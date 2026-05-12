@@ -24,7 +24,8 @@ import { SummaryCards } from "@/components/summary-cards"
 import { TransactionForm } from "@/components/transaction-form"
 import { SpendingChart } from "@/components/spending-chart"
 import { TransactionList } from "@/components/transaction-list"
-import { SmartInsightCard, ErrorBoundary } from "@/components/ui"
+import { SmartInsightCard, ErrorBoundary, SubscriptionIntelligence, SmartSearch } from "@/components/ui"
+import { detectRecurringPatterns, type RecurringPattern } from "@/lib/smart-insights"
 
 const DEFAULT_PLAN = 25000
 const RECURRING_KEY = "recurring_transactions_v1"
@@ -311,6 +312,50 @@ export function FinanceTracker() {
     )
   }, [transactions, date, plan, hydrated])
 
+  // Subscription intelligence
+  const subscriptionPatterns = useMemo(() => {
+    if (!hydrated) return []
+
+    // Get last 3 months for recurring detection
+    const allTransactions: Transaction[] = []
+    for (let i = 0; i <= 3; i++) {
+      const month = new Date(date.getFullYear(), date.getMonth() - i, 1)
+      const monthKey = getMonthKey(month)
+      const monthData = window.localStorage.getItem(monthKey)
+      if (monthData) {
+        allTransactions.push(...JSON.parse(monthData))
+      }
+    }
+
+    return detectRecurringPatterns(allTransactions)
+  }, [date, hydrated])
+
+  // All transactions for smart search
+  const allTransactionsForSearch = useMemo(() => {
+    if (!hydrated) return []
+
+    const allTx: Transaction[] = []
+    const currentMonth = new Date()
+    
+    // Get all months from localStorage
+    const allKeys = Object.keys(window.localStorage)
+    const monthKeys = allKeys.filter(key => /^\d{4}-\d{2}$/.test(key))
+    
+    monthKeys.forEach(key => {
+      const data = window.localStorage.getItem(key)
+      if (data) {
+        try {
+          const txs = JSON.parse(data)
+          allTx.push(...txs)
+        } catch {
+          // Skip invalid data
+        }
+      }
+    })
+
+    return allTx
+  }, [hydrated])
+
   const applyTemplate = (template: QuickTemplate) => {
     setAmount(String(template.amount))
     setCategory(template.category)
@@ -586,6 +631,18 @@ export function FinanceTracker() {
           <SummaryCards totalIncome={totalIncome} totalExpense={totalExpense} currency={currency} />
 
           <SmartInsightCard insights={smartInsights} />
+
+          <SubscriptionIntelligence patterns={subscriptionPatterns} currency={currency} />
+
+          <SmartSearch 
+            allTransactions={allTransactionsForSearch} 
+            currency={currency}
+            onTransactionSelect={(tx) => {
+              // Navigate to transaction date and show details
+              const txDate = new Date(tx.date)
+              setDate(txDate)
+            }}
+          />
 
           <SpendingChart 
             data={chartData} 

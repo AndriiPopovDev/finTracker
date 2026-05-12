@@ -21,6 +21,7 @@ import {
   type LucideIcon,
 } from "lucide-react"
 import { CATEGORIES, formatUAH, type CurrencyCode, type TransactionDestination, type TransactionType, getCategoryEmoji } from "@/lib/finance"
+import { suggestCategory, learnCategoryCorrection } from "@/lib/smart-insights"
 
 function evaluateExpression(raw: string): number | null {
   const normalized = raw.replace(/,/g, ".")
@@ -52,17 +53,27 @@ function parseNaturalInput(text: string): { amount?: number; category?: string; 
     result.amount = Number.parseFloat(amountMatch[1].replace(/,/g, "."))
   }
   
-  // Extract category from keywords
-  const lower = text.toLowerCase()
-  for (const [keyword, cat] of Object.entries(MERCHANT_KEYWORDS)) {
-    if (lower.includes(keyword)) {
-      result.category = cat
-      // Extract name (first word or phrase before amount)
-      const nameMatch = lower.match(/^([a-zа-яєії]+)\s/i)
-      if (nameMatch && nameMatch[1]) {
-        result.name = nameMatch[1].charAt(0).toUpperCase() + nameMatch[1].slice(1)
+  // Use smart category suggestion (includes merchant recognition + user learning)
+  const suggestion = suggestCategory(text)
+  if (suggestion) {
+    result.category = suggestion.category
+    // Extract name (first word or phrase before amount)
+    const nameMatch = text.toLowerCase().match(/^([a-zа-яєії]+)\s/i)
+    if (nameMatch && nameMatch[1]) {
+      result.name = nameMatch[1].charAt(0).toUpperCase() + nameMatch[1].slice(1)
+    }
+  } else {
+    // Fallback to basic keyword matching
+    const lower = text.toLowerCase()
+    for (const [keyword, cat] of Object.entries(MERCHANT_KEYWORDS)) {
+      if (lower.includes(keyword)) {
+        result.category = cat
+        const nameMatch = lower.match(/^([a-zа-яєії]+)\s/i)
+        if (nameMatch && nameMatch[1]) {
+          result.name = nameMatch[1].charAt(0).toUpperCase() + nameMatch[1].slice(1)
+        }
+        break
       }
-      break
     }
   }
   
@@ -167,6 +178,7 @@ export function TransactionForm({
   onCancelEdit,
   isEditing,
 }: Props) {
+  const [aiDetectedCategory, setAiDetectedCategory] = useState<string | null>(null)
   const categories = transactionType === "income" ? CATEGORIES.income : CATEGORIES.expense
   const [calcPreview, setCalcPreview] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -298,6 +310,7 @@ export function TransactionForm({
       const parsed = parseNaturalInput(value)
       if (parsed.category) {
         setCategory(parsed.category)
+        setAiDetectedCategory(parsed.category) // Track AI detection
       }
       if (parsed.name && !name) {
         setName(parsed.name)
@@ -499,6 +512,11 @@ export function TransactionForm({
                   type="button"
                   onPointerDown={(e) => e.preventDefault()}
                   onClick={() => {
+                    // Learn from user correction if AI detected a different category
+                    if (aiDetectedCategory && aiDetectedCategory !== cat.name && name) {
+                      learnCategoryCorrection(name, cat.name)
+                      setAiDetectedCategory(null) // Reset after learning
+                    }
                     setCategory(cat.name)
                     triggerHaptic('light')
                     keepAmountFocus()
