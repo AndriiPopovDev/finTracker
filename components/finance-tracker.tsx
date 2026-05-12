@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { Download, Plus, Trash2, Upload, X } from "lucide-react"
+import { Download, Plus, Trash2, Upload, X, Award, Calendar, TrendingUp, ChevronDown } from "lucide-react"
 import {
   CATEGORIES,
   type CurrencyCode,
@@ -24,8 +24,8 @@ import { SummaryCards } from "@/components/summary-cards"
 import { TransactionForm } from "@/components/transaction-form"
 import { SpendingChart } from "@/components/spending-chart"
 import { TransactionList } from "@/components/transaction-list"
-import { SmartInsightCard, ErrorBoundary, SubscriptionIntelligence, SmartSearch } from "@/components/ui"
-import { detectRecurringPatterns, type RecurringPattern } from "@/lib/smart-insights"
+import { SmartInsightCard, ErrorBoundary, SubscriptionIntelligence, SmartSearch, CalendarHeatmap, CashflowTimeline, MonthlyReview } from "@/components/ui"
+import { detectRecurringPatterns, analyzeDailySpending, type RecurringPattern } from "@/lib/smart-insights"
 
 const DEFAULT_PLAN = 25000
 const RECURRING_KEY = "recurring_transactions_v1"
@@ -78,6 +78,9 @@ export function FinanceTracker() {
   const [transferFrom, setTransferFrom] = useState<TransactionDestination>("card")
   const [transferTo, setTransferTo] = useState<TransactionDestination>("cash")
   const [showHistory, setShowHistory] = useState(false)
+  const [showMonthlyReview, setShowMonthlyReview] = useState(false)
+  const [showHeatmap, setShowHeatmap] = useState(false)
+  const [showCashflow, setShowCashflow] = useState(false)
   const [name, setName] = useState("")
   const [isRecurring, setIsRecurring] = useState(false)
   const [recurringTemplates, setRecurringTemplates] = useState<RecurringTemplate[]>([])
@@ -335,25 +338,46 @@ export function FinanceTracker() {
     if (!hydrated) return []
 
     const allTx: Transaction[] = []
-    const currentMonth = new Date()
+    const now = new Date()
     
-    // Get all months from localStorage
-    const allKeys = Object.keys(window.localStorage)
-    const monthKeys = allKeys.filter(key => /^\d{4}-\d{2}$/.test(key))
-    
-    monthKeys.forEach(key => {
-      const data = window.localStorage.getItem(key)
-      if (data) {
-        try {
-          const txs = JSON.parse(data)
-          allTx.push(...txs)
-        } catch {
-          // Skip invalid data
+    // Collect last 12 months
+    for (let i = 0; i < 12; i++) {
+      const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const monthKey = getMonthKey(monthDate)
+      try {
+        const raw = window.localStorage.getItem(monthKey)
+        if (raw) {
+          allTx.push(...JSON.parse(raw))
         }
+      } catch (error) {
+        console.error('[FinanceTracker] Failed to load transactions for search:', error)
       }
-    })
-
+    }
+    
     return allTx
+  }, [hydrated])
+
+  // All transactions by month (for cashflow and review)
+  const allTransactionsByMonth = useMemo(() => {
+    if (!hydrated) return {}
+    
+    const result: Record<string, Transaction[]> = {}
+    const now = new Date()
+    
+    for (let i = 0; i < 12; i++) {
+      const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const monthKey = getMonthKey(monthDate)
+      try {
+        const raw = window.localStorage.getItem(monthKey)
+        if (raw) {
+          result[monthKey] = JSON.parse(raw)
+        }
+      } catch (error) {
+        console.error('[FinanceTracker] Failed to load transactions by month:', error)
+      }
+    }
+    
+    return result
   }, [hydrated])
 
   const applyTemplate = (template: QuickTemplate) => {
@@ -644,6 +668,112 @@ export function FinanceTracker() {
             }}
           />
 
+          {/* Calendar Heatmap - Collapsible */}
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            onClick={() => {
+              triggerHaptic('light')
+              setShowHeatmap(!showHeatmap)
+            }}
+            className="w-full rounded-xl border border-slate-800/30 bg-slate-950/50 p-3 text-left hover:bg-slate-900/50 transition-colors"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-blue-400/80" />
+                <span className="text-sm font-semibold text-slate-300">Spending Heatmap</span>
+              </div>
+              <motion.div
+                animate={{ rotate: showHeatmap ? 180 : 0 }}
+                transition={{ duration: 0.2 }}
+                className="text-slate-500"
+              >
+                <ChevronDown className="h-4 w-4" />
+              </motion.div>
+            </div>
+          </motion.button>
+
+          <AnimatePresence>
+            {showHeatmap && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                className="overflow-hidden"
+              >
+                <CalendarHeatmap 
+                  transactions={transactions} 
+                  currentMonth={date} 
+                  currency={currency} 
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Cashflow Timeline - Collapsible */}
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            onClick={() => {
+              triggerHaptic('light')
+              setShowCashflow(!showCashflow)
+            }}
+            className="w-full rounded-xl border border-slate-800/30 bg-slate-950/50 p-3 text-left hover:bg-slate-900/50 transition-colors"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-emerald-400/80" />
+                <span className="text-sm font-semibold text-slate-300">Cashflow Timeline</span>
+              </div>
+              <motion.div
+                animate={{ rotate: showCashflow ? 180 : 0 }}
+                transition={{ duration: 0.2 }}
+                className="text-slate-500"
+              >
+                <ChevronDown className="h-4 w-4" />
+              </motion.div>
+            </div>
+          </motion.button>
+
+          <AnimatePresence>
+            {showCashflow && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                className="overflow-hidden"
+              >
+                <CashflowTimeline 
+                  transactions={allTransactionsByMonth} 
+                  currentMonth={date} 
+                  currency={currency} 
+                  monthsToShow={6} 
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Monthly Review Button */}
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            onClick={() => {
+              triggerHaptic('medium')
+              setShowMonthlyReview(true)
+            }}
+            className="w-full rounded-xl border border-slate-800/30 bg-slate-950/50 p-3 text-left hover:bg-slate-900/50 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <Award className="h-4 w-4 text-amber-500" />
+              <span className="text-sm font-semibold text-slate-300">View Monthly Review</span>
+            </div>
+            <p className="mt-1 text-xs text-slate-500">
+              Detailed insights and financial health score
+            </p>
+          </motion.button>
+
           <SpendingChart 
             data={chartData} 
             totalExpense={totalExpense} 
@@ -816,6 +946,17 @@ export function FinanceTracker() {
         }}
         onImportError={(message: string) => window.alert(`✗ Import Failed: ${message}`)}
       />
+
+      {/* Monthly Review Modal */}
+      {showMonthlyReview && (
+        <MonthlyReview
+          transactions={transactions}
+          currentMonth={date}
+          currency={currency}
+          allTransactions={allTransactionsByMonth}
+          onClose={() => setShowMonthlyReview(false)}
+        />
+      )}
     </main>
   )
 }

@@ -86,10 +86,10 @@ export function formatPeriod(date: Date) {
 }
 
 export function formatShortDate(date: Date) {
-  const d = String(date.getDate()).padStart(2, "0")
-  const m = String(date.getMonth() + 1).padStart(2, "0")
   const y = date.getFullYear()
-  return `${d}/${m}/${y}`
+  const m = String(date.getMonth() + 1).padStart(2, "0")
+  const d = String(date.getDate()).padStart(2, "0")
+  return `${y}-${m}-${d}`
 }
 
 const CURRENCY_SYMBOL: Record<CurrencyCode, string> = {

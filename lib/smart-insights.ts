@@ -1,5 +1,24 @@
 import type { Transaction, CurrencyCode } from "./finance"
 
+// Normalize date formats (DD/MM/YYYY or YYYY-MM-DD) to YYYY-MM-DD
+function normalizeDate(dateStr: string): string | null {
+  if (!dateStr) return null
+  
+  // Already in YYYY-MM-DD format
+  if (dateStr.includes('-') && dateStr.length === 10) {
+    return dateStr
+  }
+  
+  // DD/MM/YYYY format - convert to YYYY-MM-DD
+  const parts = dateStr.split('/')
+  if (parts.length === 3) {
+    const [day, month, year] = parts
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+  }
+  
+  return null
+}
+
 // Merchant recognition patterns
 const MERCHANT_PATTERNS: MerchantRecognition[] = [
   { pattern: 'netflix', category: 'Entertainment', confidence: 0.95, examples: ['netflix', 'netfli'] },
@@ -138,6 +157,97 @@ export function analyzeSpendingTrends(
     direction,
     percentage: Math.abs(change),
     period: 'vs last month'
+  }
+}
+
+export type DailySpendingAnalysis = {
+  avgDaily: number
+  totalDays: number
+  activeDays: number
+  noSpendDays: number
+  maxDayAmount: number
+  maxDayDate: Date
+  currentStreak: number // consecutive no-spend days
+  bestWeek: { start: Date; end: Date; amount: number }
+}
+
+export function analyzeDailySpending(
+  transactions: Transaction[],
+  currentMonth: Date
+): DailySpendingAnalysis {
+  const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate()
+  const now = new Date()
+  const isCurrentMonth = now.getFullYear() === currentMonth.getFullYear() && now.getMonth() === currentMonth.getMonth()
+  const daysElapsed = isCurrentMonth ? now.getDate() : daysInMonth
+
+  // Group by date (normalize DD/MM/YYYY to YYYY-MM-DD)
+  const dailyTotals = new Map<string, number>()
+  transactions
+    .filter(t => t.type === 'expense')
+    .forEach(t => {
+      const normalizedDate = normalizeDate(t.date)
+      if (normalizedDate) {
+        dailyTotals.set(normalizedDate, (dailyTotals.get(normalizedDate) || 0) + t.amount)
+      }
+    })
+
+  const activeDays = dailyTotals.size
+  const noSpendDays = daysElapsed - activeDays
+  const totalExpense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0)
+  const avgDaily = daysElapsed > 0 ? totalExpense / daysElapsed : 0
+
+  // Find max day
+  let maxDayAmount = 0
+  let maxDayDate = new Date()
+  dailyTotals.forEach((amount, dateStr) => {
+    if (amount > maxDayAmount) {
+      maxDayAmount = amount
+      maxDayDate = new Date(dateStr)
+    }
+  })
+
+  // Calculate current no-spend streak
+  let currentStreak = 0
+  for (let i = 0; i < daysElapsed; i++) {
+    const checkDate = new Date(now)
+    checkDate.setDate(checkDate.getDate() - i)
+    const dateKey = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`
+    if (!dailyTotals.has(dateKey)) {
+      currentStreak++
+    } else {
+      break
+    }
+  }
+
+  // Find best week (lowest spending)
+  let bestWeek = { start: new Date(), end: new Date(), amount: Infinity }
+  for (let weekStart = 0; weekStart <= daysElapsed - 7; weekStart++) {
+    const startDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), weekStart + 1)
+    const endDate = new Date(startDate)
+    endDate.setDate(endDate.getDate() + 6)
+
+    let weekAmount = 0
+    for (let d = 0; d < 7; d++) {
+      const checkDate = new Date(startDate)
+      checkDate.setDate(checkDate.getDate() + d)
+      const dateKey = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`
+      weekAmount += dailyTotals.get(dateKey) || 0
+    }
+
+    if (weekAmount < bestWeek.amount) {
+      bestWeek = { start: startDate, end: endDate, amount: weekAmount }
+    }
+  }
+
+  return {
+    avgDaily,
+    totalDays: daysElapsed,
+    activeDays,
+    noSpendDays,
+    maxDayAmount,
+    maxDayDate,
+    currentStreak,
+    bestWeek: bestWeek.amount === Infinity ? { start: new Date(), end: new Date(), amount: 0 } : bestWeek
   }
 }
 
