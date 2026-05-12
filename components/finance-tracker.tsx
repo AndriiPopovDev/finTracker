@@ -508,7 +508,14 @@ export function FinanceTracker() {
 
         <SummaryCards totalIncome={totalIncome} totalExpense={totalExpense} currency={currency} />
 
-        <SpendingChart data={chartData} totalExpense={totalExpense} currency={currency} forecastValue={forecastValue} />
+        <SpendingChart 
+          data={chartData} 
+          totalExpense={totalExpense} 
+          currency={currency} 
+          forecastValue={forecastValue}
+          currentDate={date}
+          allTransactions={transactions}
+        />
 
         {showHistory && <HistoryView currentMonthKey={monthKey} onSelect={setDate} currency={currency} />}
 
