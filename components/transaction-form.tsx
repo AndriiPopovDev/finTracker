@@ -152,6 +152,8 @@ type Props = {
   onAdd: () => void
   onCancelEdit?: () => void
   isEditing: boolean
+  transactionDate?: string
+  setTransactionDate?: (v: string) => void
 }
 
 export function TransactionForm({
@@ -177,6 +179,8 @@ export function TransactionForm({
   onAdd,
   onCancelEdit,
   isEditing,
+  transactionDate,
+  setTransactionDate,
 }: Props) {
   const [aiDetectedCategory, setAiDetectedCategory] = useState<string | null>(null)
   const categories = transactionType === "income" ? CATEGORIES.income : CATEGORIES.expense
@@ -453,6 +457,30 @@ export function TransactionForm({
             <span>✨</span>
             <span>AI</span>
           </button>
+          
+          {/* Date picker button */}
+          {setTransactionDate && transactionDate && (
+            <input
+              type="date"
+              value={transactionDate}
+              onChange={(e) => {
+                setTransactionDate(e.target.value)
+                // Refocus amount input after date selection with proper delay for mobile
+                setTimeout(() => {
+                  inputRef.current?.focus()
+                  inputRef.current?.setSelectionRange(amount.length, amount.length)
+                  // Scroll amount input into view above keyboard
+                  inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                }, 150)
+              }}
+              onBlur={() => {
+                // Ensure amount input gets focus when date picker closes
+                setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 50)
+              }}
+              className="rounded-lg bg-slate-800/50 px-2 py-1.5 text-xs text-slate-400 outline-none transition-colors hover:text-slate-300 [color-scheme:dark] cursor-pointer"
+              title="Change date"
+            />
+          )}
         </div>
         
         <label className="relative block">

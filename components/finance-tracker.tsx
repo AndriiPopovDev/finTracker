@@ -85,6 +85,7 @@ export function FinanceTracker() {
   const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>([])
   const [name, setName] = useState("")
   const [isRecurring, setIsRecurring] = useState(false)
+  const [transactionDate, setTransactionDate] = useState(formatShortDate(new Date()))
   const [recurringTemplates, setRecurringTemplates] = useState<RecurringTemplate[]>([])
   const [quickTemplates, setQuickTemplates] = useState<QuickTemplate[]>(DEFAULT_QUICK_TEMPLATES)
   const [currency, setCurrency] = useState<CurrencyCode>("UAH")
@@ -462,7 +463,7 @@ export function FinanceTracker() {
         amount: parsed,
         category: "Transfer",
         type: "transfer",
-        date: formatShortDate(new Date()),
+        date: transactionDate,
         name: name.trim() || undefined,
         transferFrom,
         transferTo,
@@ -470,6 +471,7 @@ export function FinanceTracker() {
       setTransactions([newTx, ...transactions])
       setAmount("")
       setName("")
+      setTransactionDate(formatShortDate(new Date()))
       setSheetOpen(false)
       return
     }
@@ -506,7 +508,7 @@ export function FinanceTracker() {
       amount: parsed,
       category,
       type: transactionType,
-      date: formatShortDate(new Date()),
+      date: transactionDate,
       name: name.trim() || undefined,
       recurringId,
       destination,
@@ -526,6 +528,7 @@ export function FinanceTracker() {
     setAmount("")
     setName("")
     setIsRecurring(false)
+    setTransactionDate(formatShortDate(new Date()))
     setSheetOpen(false)
   }
 
@@ -560,7 +563,7 @@ export function FinanceTracker() {
       setTransactions((prev) =>
         prev.map((t) =>
           t.id === editingId
-            ? { ...t, amount: parsed, category: "Transfer", type: "transfer" as const, name: name.trim() || undefined, transferFrom, transferTo }
+            ? { ...t, amount: parsed, category: "Transfer", type: "transfer" as const, name: name.trim() || undefined, transferFrom, transferTo, date: transactionDate }
             : t
         )
       )
@@ -575,7 +578,7 @@ export function FinanceTracker() {
       setTransactions((prev) =>
         prev.map((t) =>
           t.id === editingId
-            ? { ...t, amount: parsed, category, type: transactionType, name: name.trim() || undefined, destination }
+            ? { ...t, amount: parsed, category, type: transactionType, name: name.trim() || undefined, destination, date: transactionDate }
             : t
         )
       )
@@ -614,6 +617,7 @@ export function FinanceTracker() {
     setAmount(String(tx.amount))
     setName(tx.name ?? "")
     setTransactionType(tx.type)
+    setTransactionDate(tx.date)
     if (tx.type === "transfer") {
       setTransferFrom(tx.transferFrom ?? "card")
       setTransferTo(tx.transferTo ?? "cash")
@@ -949,6 +953,8 @@ export function FinanceTracker() {
                 onAdd={editingId !== null ? updateTransaction : addTransaction}
                 onCancelEdit={cancelEdit}
                 isEditing={editingId !== null}
+                transactionDate={transactionDate}
+                setTransactionDate={setTransactionDate}
               />
             </motion.div>
 
