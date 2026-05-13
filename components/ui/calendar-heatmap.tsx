@@ -112,7 +112,8 @@ export function CalendarHeatmap({ transactions, currentMonth, currency, classNam
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={ANIMATION.spring.base}
+      exit={{ opacity: 0, y: -10, transition: { duration: 0.15 } }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
       className={`rounded-xl border border-slate-800/30 bg-slate-950/50 p-3 ${className}`}
     >
       <div className="flex items-center gap-2 mb-2.5">
@@ -135,8 +136,8 @@ export function CalendarHeatmap({ transactions, currentMonth, currency, classNam
         {calendarDays.map((day, idx) => (
           <div
             key={idx}
-            className={`aspect-square rounded-md flex items-center justify-center text-[10px] font-medium transition-all cursor-pointer
-              ${day.isFuture ? 'text-slate-700' : 'text-slate-300 hover:scale-110'}
+            className={`aspect-square rounded-md flex items-center justify-center text-[10px] font-medium
+              ${day.isFuture ? 'text-slate-700' : 'text-slate-300'}
               ${intensityColors[day.intensity]}
             `}
             onClick={() => !day.isFuture && day.amount > 0 && triggerHaptic('light')}

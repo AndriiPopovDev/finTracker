@@ -74,7 +74,8 @@ function getContextLabel(transaction: Transaction): string | null {
 }
 
 export function SmartTimeline({ transactions, currency, onDelete, onEdit, className = '' }: Props) {
-  const [visibleCount, setVisibleCount] = useState(4)
+  const [visibleCount, setVisibleCount] = useState(3)
+  const [showAll, setShowAll] = useState(false)
 
   const { groups, totalCount } = useMemo(() => {
     const groupMap = new Map<string, Transaction[]>()
@@ -135,14 +136,15 @@ export function SmartTimeline({ transactions, currency, onDelete, onEdit, classN
   }, [transactions])
 
   // Calculate visible transactions
+  const displayCount = showAll ? totalCount : visibleCount
   let count = 0
   const visibleGroups: TimeGroup[] = []
   for (const group of groups) {
-    if (count >= visibleCount) break
+    if (count >= displayCount) break
     
     // Flatten all transactions from dateGroups
     const allTx = group.dateGroups.flatMap(dg => dg.transactions)
-    const remaining = visibleCount - count
+    const remaining = displayCount - count
     
     if (allTx.length <= remaining) {
       visibleGroups.push(group)
@@ -170,7 +172,8 @@ export function SmartTimeline({ transactions, currency, onDelete, onEdit, classN
     }
   }
 
-  const hasMore = totalCount > visibleCount
+  const hasMore = totalCount > displayCount
+  const canToggle = totalCount > visibleCount
 
   if (transactions.length === 0) return null
 
@@ -195,7 +198,8 @@ export function SmartTimeline({ transactions, currency, onDelete, onEdit, classN
       <div className="space-y-4">
         {visibleGroups.map((group) => (
           <div key={group.label}>
-            <div className="flex items-center justify-between mb-2">
+            {/* Time group header - centered */}
+            <div className="flex items-center justify-center gap-2 mb-3">
               <h3 className="text-xs font-semibold text-slate-400">{group.label}</h3>
               {group.totalExpense > 0 && (
                 <div className="flex items-center gap-1 text-xs text-slate-500">
@@ -209,12 +213,14 @@ export function SmartTimeline({ transactions, currency, onDelete, onEdit, classN
             <div className="space-y-2">
               {group.dateGroups.map((dateGroup) => (
                 <div key={dateGroup.date}>
-                  {/* Date label */}
-                  <div className="mb-1.5 px-1">
-                    <span className="text-[10px] font-medium text-slate-600">
-                      {dateGroup.dateLabel}
-                    </span>
-                  </div>
+                  {/* Date label - hide for Today/Yesterday, center for others */}
+                  {group.label !== "Today" && group.label !== "Yesterday" && (
+                    <div className="mb-1.5 text-center">
+                      <span className="text-[10px] font-medium text-slate-600">
+                        {dateGroup.dateLabel}
+                      </span>
+                    </div>
+                  )}
                   
                   {/* Transactions for this date */}
                   <ul className="space-y-1.5">
@@ -322,17 +328,17 @@ export function SmartTimeline({ transactions, currency, onDelete, onEdit, classN
       </div>
 
       {/* Show More/Less Button */}
-      {hasMore && (
+      {canToggle && (
         <motion.button
           whileTap={{ scale: 0.98 }}
           onClick={() => {
-            setVisibleCount(prev => prev >= totalCount ? 4 : prev + 5)
+            setShowAll(!showAll)
             triggerHaptic('light')
           }}
           className="mx-auto flex w-full items-center justify-center gap-1.5 rounded-xl border border-slate-800/40 bg-slate-950/40 py-2.5 text-xs font-medium text-slate-500 transition-all hover:border-slate-700/50 hover:bg-slate-900/40 hover:text-slate-400"
         >
-          <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${visibleCount >= totalCount ? "rotate-180" : ""}`} />
-          {visibleCount >= totalCount ? "Show less" : `Show ${Math.min(5, totalCount - visibleCount)} more`}
+          <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${showAll ? "rotate-180" : ""}`} />
+          {showAll ? "Show less" : `Show all (${totalCount - displayCount} more)`}
         </motion.button>
       )}
     </motion.div>

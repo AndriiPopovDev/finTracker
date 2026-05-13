@@ -744,8 +744,8 @@ export function FinanceTracker() {
               <motion.div
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                exit={{ height: 0, opacity: 0, transition: { duration: 0.15 } }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
                 className="overflow-hidden"
               >
                 <CalendarHeatmap 
@@ -787,11 +787,11 @@ export function FinanceTracker() {
               <motion.div
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                exit={{ height: 0, opacity: 0, transition: { duration: 0.15 } }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
                 className="overflow-hidden"
               >
-                <CashflowTimeline 
+                <CashflowTimeline
                   transactions={allTransactionsByMonth} 
                   currentMonth={date} 
                   currency={currency} 

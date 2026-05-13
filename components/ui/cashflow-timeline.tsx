@@ -73,7 +73,8 @@ export function CashflowTimeline({ transactions, currentMonth, currency, monthsT
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={ANIMATION.spring.base}
+      exit={{ opacity: 0, y: -10, transition: { duration: 0.15 } }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
       className={`rounded-xl border border-slate-800/30 bg-slate-950/50 p-3 ${className}`}
     >
       <div className="flex items-center justify-between mb-3">
