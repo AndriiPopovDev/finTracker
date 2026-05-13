@@ -34,7 +34,32 @@ export const CATEGORIES: {
   ],
 }
 
-export const COLORS = ["#10b981", "#3b82f6", "#8b5cf6", "#f43f5e", "#f59e0b", "#06b6d4", "#ec4899"]
+export const COLORS = [
+  "#10b981", "#3b82f6", "#8b5cf6", "#f43f5e", "#f59e0b", "#06b6d4", "#ec4899",
+  "#84cc16", "#f97316", "#14b8a6", "#a855f7", "#ef4444", "#6366f1", "#e11d48",
+  "#0ea5e9", "#d946ef", "#22c55e", "#eab308", "#64748b"
+]
+
+// Generate a color for categories not in CATEGORIES
+const categoryColorCache = new Map<string, string>()
+let colorIndex = 0
+
+export function getCategoryColor(categoryName: string, index?: number): string {
+  // Check if it's a predefined category
+  const predefined = CATEGORIES.expense.find(c => c.name === categoryName) || 
+                     CATEGORIES.income.find(c => c.name === categoryName)
+  if (predefined) return predefined.color
+  
+  // Return cached color if exists
+  if (categoryColorCache.has(categoryName)) {
+    return categoryColorCache.get(categoryName)!
+  }
+  
+  // Assign new color from extended palette
+  const color = COLORS[(index ?? colorIndex++) % COLORS.length]
+  categoryColorCache.set(categoryName, color)
+  return color
+}
 
 export type TransactionType = "income" | "expense" | "transfer"
 export type CurrencyCode = "UAH" | "USD" | "EUR"

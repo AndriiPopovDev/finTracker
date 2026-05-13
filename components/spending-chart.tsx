@@ -4,7 +4,7 @@ import { useState, useMemo } from "react"
 import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts"
 import { motion, AnimatePresence } from "framer-motion"
 import { ChartPie as PieIcon, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Wallet, CalendarDays } from "lucide-react"
-import { CATEGORIES, COLORS, formatUAH, getCategoryEmoji, type CurrencyCode, type Transaction, getMonthKey } from "@/lib/finance"
+import { CATEGORIES, COLORS, formatUAH, getCategoryEmoji, getCategoryColor, type CurrencyCode, type Transaction, getMonthKey } from "@/lib/finance"
 import { triggerHaptic } from "@/lib/haptic"
 import { InsightCard, InsightGrid } from "@/components/ui"
 
@@ -84,7 +84,7 @@ export function SpendingChart({ data, totalExpense, currency, forecastValue, cur
       prevMonthValue: prevValue,
       change,
       emoji: getCategoryEmoji("expense", item.name),
-      color: catInfo?.color || COLORS[selectedIndex % COLORS.length],
+      color: getCategoryColor(item.name, selectedIndex),
     }
   }, [selectedIndex, data, totalExpense, prevMonthData])
 
@@ -145,17 +145,20 @@ export function SpendingChart({ data, totalExpense, currency, forecastValue, cur
                   onClick={(_, index) => handleSliceClick(index)}
                   style={{ cursor: "pointer", outline: 'none' }}
                 >
-                  {data.map((_, i) => (
+                  {data.map((item, i) => {
+                    const color = getCategoryColor(item.name, i)
+                    return (
                     <Cell 
                       key={i} 
-                      fill={COLORS[i % COLORS.length]}
+                      fill={color}
                       opacity={selectedIndex === null || selectedIndex === i ? 1 : 0.4}
                       style={{ 
                         transition: "opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
                         filter: selectedIndex === i ? 'brightness(1.1)' : 'none'
                       }}
                     />
-                  ))}
+                    )
+                  })}
                 </Pie>
               </PieChart>
             </ResponsiveContainer>
@@ -238,8 +241,7 @@ export function SpendingChart({ data, totalExpense, currency, forecastValue, cur
           <ul className="mt-3 space-y-2.5">
             {data.map((d, i) => {
               const pct = totalExpense > 0 ? (d.value / totalExpense) * 100 : 0
-              const catInfo = CATEGORIES.expense.find((c) => c.name === d.name)
-              const barColor = catInfo?.color ?? COLORS[i % COLORS.length]
+              const barColor = getCategoryColor(d.name, i)
               const isSelected = selectedIndex === i
               return (
                 <motion.li 

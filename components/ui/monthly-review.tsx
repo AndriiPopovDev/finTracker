@@ -4,7 +4,7 @@ import { useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { X, TrendingUp, TrendingDown, DollarSign, CalendarDays, Award, Star, PiggyBank } from "lucide-react"
 import type { Transaction, CurrencyCode } from "@/lib/finance"
-import { formatUAH, getMonthKey, CATEGORIES, getCategoryEmoji } from "@/lib/finance"
+import { formatUAH, getMonthKey, CATEGORIES, getCategoryEmoji, getCategoryColor } from "@/lib/finance"
 import { analyzeDailySpending, analyzeSpendingTrends } from "@/lib/smart-insights"
 import { ANIMATION, COLORS } from "@/lib/theme"
 import { triggerHaptic } from "@/lib/haptic"
@@ -290,8 +290,7 @@ export function MonthlyReview({ transactions, currentMonth, currency, allTransac
                 <div className="space-y-2">
                   {review.sortedCategories.slice(0, 5).map(([category, amount]: [string, number], idx: number) => {
                     const percentage = (amount / review.totalExpense) * 100
-                    const catInfo = CATEGORIES.expense.find(c => c.name === category)
-                    const barColor = catInfo?.color ?? COLORS.rose[500]
+                    const barColor = getCategoryColor(category, idx)
                     
                     return (
                       <div key={category} className="space-y-1">
