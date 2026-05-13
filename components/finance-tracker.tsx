@@ -182,11 +182,13 @@ export function FinanceTracker() {
             const day = template.dayOfMonth || new Date().getDate()
             const now = new Date()
             
-            // Check if the scheduled day has already passed this month
+            // Calculate the transaction date
             let txDate = new Date(now.getFullYear(), now.getMonth(), day)
-            if (txDate < now && txDate.getDate() !== now.getDate()) {
-              // Day has passed, schedule for next month
-              txDate = new Date(now.getFullYear(), now.getMonth() + 1, day)
+            
+            // If the scheduled day is in the future this month, use last month instead
+            // (so it shows as already processed)
+            if (txDate > now) {
+              txDate = new Date(now.getFullYear(), now.getMonth() - 1, day)
             }
             
             return {
