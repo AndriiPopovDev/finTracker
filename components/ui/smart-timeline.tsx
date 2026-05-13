@@ -18,7 +18,12 @@ type Props = {
 
 type TimeGroup = {
   label: string
-  transactions: Transaction[]
+  dateGroups: {
+    date: string
+    dateLabel: string
+    transactions: Transaction[]
+    totalExpense: number
+  }[]
   totalExpense: number
 }
 
@@ -45,6 +50,15 @@ function getTimeGroup(dateStr: string): string {
   if (diffDays < 7) return "This Week"
   if (diffDays < 14) return "Last Week"
   return "Earlier"
+}
+
+function formatDateLabel(dateStr: string): string {
+  // Format YYYY-MM-DD to DD/MM/YYYY
+  if (dateStr.includes('-')) {
+    const [year, month, day] = dateStr.split('-')
+    return `${day}/${month}/${year}`
+  }
+  return dateStr
 }
 
 function getContextLabel(transaction: Transaction): string | null {
@@ -85,13 +99,33 @@ export function SmartTimeline({ transactions, currency, onDelete, onEdit, classN
       groupMap.get(group)!.push(tx)
     })
     
-    const groups = Array.from(groupMap.entries()).map(([label, txs]) => ({
-      label,
-      transactions: txs,
-      totalExpense: txs
-        .filter(t => t.type === 'expense')
-        .reduce((sum, t) => sum + t.amount, 0)
-    }))
+    // Group transactions by date within each time group
+    const groups = Array.from(groupMap.entries()).map(([label, txs]) => {
+      const dateMap = new Map<string, Transaction[]>()
+      txs.forEach(tx => {
+        if (!dateMap.has(tx.date)) {
+          dateMap.set(tx.date, [])
+        }
+        dateMap.get(tx.date)!.push(tx)
+      })
+      
+      const dateGroups = Array.from(dateMap.entries()).map(([date, transactions]) => ({
+        date,
+        dateLabel: formatDateLabel(date),
+        transactions,
+        totalExpense: transactions
+          .filter(t => t.type === 'expense')
+          .reduce((sum, t) => sum + t.amount, 0)
+      }))
+      
+      return {
+        label,
+        dateGroups,
+        totalExpense: txs
+          .filter(t => t.type === 'expense')
+          .reduce((sum, t) => sum + t.amount, 0)
+      }
+    })
     
     // Sort groups in chronological order: Today → Yesterday → This Week → Last Week → Earlier
     const groupOrder: Record<string, number> = { "Today": 0, "Yesterday": 1, "This Week": 2, "Last Week": 3, "Earlier": 4 }
@@ -105,15 +139,33 @@ export function SmartTimeline({ transactions, currency, onDelete, onEdit, classN
   const visibleGroups: TimeGroup[] = []
   for (const group of groups) {
     if (count >= visibleCount) break
+    
+    // Flatten all transactions from dateGroups
+    const allTx = group.dateGroups.flatMap(dg => dg.transactions)
     const remaining = visibleCount - count
-    if (group.transactions.length <= remaining) {
+    
+    if (allTx.length <= remaining) {
       visibleGroups.push(group)
-      count += group.transactions.length
+      count += allTx.length
     } else {
-      visibleGroups.push({
-        ...group,
-        transactions: group.transactions.slice(0, remaining)
-      })
+      // Partial group - need to slice transactions
+      const slicedGroups = []
+      let slicedCount = 0
+      for (const dg of group.dateGroups) {
+        if (slicedCount >= remaining) break
+        const available = remaining - slicedCount
+        if (dg.transactions.length <= available) {
+          slicedGroups.push(dg)
+          slicedCount += dg.transactions.length
+        } else {
+          slicedGroups.push({
+            ...dg,
+            transactions: dg.transactions.slice(0, available)
+          })
+          slicedCount += available
+        }
+      }
+      visibleGroups.push({ ...group, dateGroups: slicedGroups })
       count += remaining
     }
   }
@@ -153,19 +205,31 @@ export function SmartTimeline({ transactions, currency, onDelete, onEdit, classN
               )}
             </div>
             
-            <ul className="space-y-1.5">
-              {group.transactions.map((t) => {
-                const isTransfer = t.type === "transfer"
-                const isIncome = t.type === "income"
-                const contextLabel = getContextLabel(t)
-                
-                return (
-                  <motion.div
-                    key={t.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.15 }}
-                    className="group flex items-center gap-2.5 rounded-xl bg-slate-950/40 px-3 py-2.5 transition-colors hover:bg-slate-900/60"
+            {/* Date sub-groups */}
+            <div className="space-y-2">
+              {group.dateGroups.map((dateGroup) => (
+                <div key={dateGroup.date}>
+                  {/* Date label */}
+                  <div className="mb-1.5 px-1">
+                    <span className="text-[10px] font-medium text-slate-600">
+                      {dateGroup.dateLabel}
+                    </span>
+                  </div>
+                  
+                  {/* Transactions for this date */}
+                  <ul className="space-y-1.5">
+                    {dateGroup.transactions.map((t) => {
+                      const isTransfer = t.type === "transfer"
+                      const isIncome = t.type === "income"
+                      const contextLabel = getContextLabel(t)
+                      
+                      return (
+                        <motion.div
+                          key={t.id}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.15 }}
+                          className="group flex items-center gap-2.5 rounded-xl bg-slate-950/40 px-3 py-2.5 transition-colors hover:bg-slate-900/60"
                   >
                     <span
                       className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${
@@ -249,7 +313,10 @@ export function SmartTimeline({ transactions, currency, onDelete, onEdit, classN
                   </motion.div>
                 )
               })}
-            </ul>
+                  </ul>
+                </div>
+              ))}
+            </div>
           </div>
         ))}
       </div>
