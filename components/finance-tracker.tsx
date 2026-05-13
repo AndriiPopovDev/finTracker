@@ -181,7 +181,13 @@ export function FinanceTracker() {
             // Use template's dayOfMonth or default to today's day
             const day = template.dayOfMonth || new Date().getDate()
             const now = new Date()
-            const txDate = new Date(now.getFullYear(), now.getMonth(), day)
+            
+            // Check if the scheduled day has already passed this month
+            let txDate = new Date(now.getFullYear(), now.getMonth(), day)
+            if (txDate < now && txDate.getDate() !== now.getDate()) {
+              // Day has passed, schedule for next month
+              txDate = new Date(now.getFullYear(), now.getMonth() + 1, day)
+            }
             
             return {
               id: Date.now() + Math.floor(Math.random() * 100000),
