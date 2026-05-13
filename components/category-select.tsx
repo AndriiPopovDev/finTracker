@@ -16,6 +16,7 @@ import {
   Star,
   User,
   Utensils,
+  Pill,
   type LucideIcon,
 } from "lucide-react"
 import type { CategoryIconName, CategoryInfo } from "@/lib/finance"
@@ -32,6 +33,7 @@ const ICONS: Record<CategoryIconName, LucideIcon> = {
   star: Star,
   laptop: Laptop,
   pin: Pin,
+  pill: Pill,
 }
 
 type Props = {

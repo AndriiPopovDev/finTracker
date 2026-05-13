@@ -93,6 +93,10 @@ export function SmartTimeline({ transactions, currency, onDelete, onEdit, classN
         .reduce((sum, t) => sum + t.amount, 0)
     }))
     
+    // Sort groups in chronological order: Today → Yesterday → This Week → Last Week → Earlier
+    const groupOrder: Record<string, number> = { "Today": 0, "Yesterday": 1, "This Week": 2, "Last Week": 3, "Earlier": 4 }
+    groups.sort((a, b) => (groupOrder[a.label] ?? 99) - (groupOrder[b.label] ?? 99))
+    
     return { groups, totalCount: sorted.length }
   }, [transactions])
 

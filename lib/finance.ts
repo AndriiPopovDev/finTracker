@@ -12,6 +12,7 @@ export type CategoryIconName =
   | "star"
   | "laptop"
   | "pin"
+  | "pill"
 
 export const CATEGORIES: {
   expense: readonly CategoryInfo[]
@@ -22,6 +23,7 @@ export const CATEGORIES: {
     { name: "Restaurants", emoji: "🍽️", iconName: "utensils", color: "#f59e0b" },
     { name: "Entertainment", emoji: "🎬", iconName: "film", color: "#ec4899" },
     { name: "Housing & Utilities", emoji: "🏠", iconName: "home", color: "#3b82f6" },
+    { name: "Medicine", emoji: "💊", iconName: "pill", color: "#10b981" },
     { name: "Gifts", emoji: "🎁", iconName: "gift", color: "#10b981" },
     { name: "Games", emoji: "🎮", iconName: "gamepad", color: "#06b6d4" },
     { name: "Personal", emoji: "👤", iconName: "user", color: "#a78bfa" },
