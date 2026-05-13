@@ -39,6 +39,7 @@ type RecurringTemplate = {
   type: "income" | "expense"
   name?: string
   destination?: TransactionDestination
+  dayOfMonth?: number // Day of month for auto-deduction (1-31)
 }
 
 type QuickTemplate = {
@@ -175,16 +176,23 @@ export function FinanceTracker() {
         const existingRecurringIds = new Set(nextTransactions.map((t) => t.recurringId).filter(Boolean))
         const generated = recurring
           .filter((template) => !existingRecurringIds.has(template.id))
-          .map((template) => ({
-            id: Date.now() + Math.floor(Math.random() * 100000),
-            amount: template.amount,
-            category: template.category,
-            type: template.type,
-            date: formatShortDate(new Date()),
-            name: template.name,
-            recurringId: template.id,
-            destination: template.destination ?? "card",
-          } satisfies Transaction))
+          .map((template) => {
+            // Use template's dayOfMonth or default to today's day
+            const day = template.dayOfMonth || new Date().getDate()
+            const now = new Date()
+            const txDate = new Date(now.getFullYear(), now.getMonth(), day)
+            
+            return {
+              id: Date.now() + Math.floor(Math.random() * 100000),
+              amount: template.amount,
+              category: template.category,
+              type: template.type,
+              date: formatShortDate(txDate),
+              name: template.name,
+              recurringId: template.id,
+              destination: template.destination ?? "card",
+            } satisfies Transaction
+          })
         if (generated.length > 0) nextTransactions = [...generated, ...nextTransactions]
       }
       setTransactions(nextTransactions)
@@ -484,6 +492,7 @@ export function FinanceTracker() {
           type: transactionType as "income" | "expense",
           name: name.trim() || undefined,
           destination,
+          dayOfMonth: new Date().getDate(), // Set to current day
         }
         const nextRecurring = [...recurringTemplates, nextTemplate]
         setRecurringTemplates(nextRecurring)
@@ -1087,6 +1096,7 @@ function SettingsModal({
         `📊 ${collected.entityCounts.totalTransactions} transactions\n` +
         `📆 ${collected.entityCounts.months} months\n` +
         `🔄 ${collected.entityCounts.recurring} recurring payments\n` +
+        `🎯 ${collected.entityCounts.savingsGoals} savings goals\n` +
         `💰 Card: ${formatUAH(collected.balances.card)}\n` +
         `💵 Cash: ${formatUAH(collected.balances.cash)}\n` +
         `🏦 Savings: ${formatUAH(collected.balances.savings)}`
@@ -1374,6 +1384,7 @@ function MonthlySubscriptionsManager({
         category: "Personal",
         type: "expense" as const,
         destination: "card" as const,
+        dayOfMonth: new Date().getDate(),
       },
     ])
   }
@@ -1423,6 +1434,27 @@ function MonthlySubscriptionsManager({
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2">
+                  <span className="text-xs text-slate-500">Day:</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="31"
+                    value={template.dayOfMonth || new Date().getDate()}
+                    onChange={(e) => {
+                      const day = Number(e.target.value)
+                      if (day >= 1 && day <= 31) {
+                        updateTemplate(template.id, { dayOfMonth: day })
+                      }
+                    }}
+                    className="w-12 bg-transparent text-sm text-white [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  />
+                </div>
+                <span className="text-xs text-slate-500">
+                  of each month
+                </span>
               </div>
             </div>
           </div>

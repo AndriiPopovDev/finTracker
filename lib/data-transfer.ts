@@ -24,6 +24,7 @@ export type RecurringTemplate = {
   type: "income" | "expense"
   name?: string
   destination?: TransactionDestination
+  dayOfMonth?: number // Day of month for auto-deduction (1-31)
 }
 
 export type QuickTemplate = {
@@ -39,6 +40,17 @@ export type UserSettings = {
   quickTemplates: QuickTemplate[]
 }
 
+export type SavingsGoal = {
+  id: string
+  name: string
+  targetAmount: number
+  currentAmount: number
+  icon: string
+  color: string
+  createdAt: string
+  monthlyContribution?: number
+}
+
 export type FinanceBackupV2 = {
   metadata: BackupMetadata
   accounts: AccountBalances
@@ -46,6 +58,7 @@ export type FinanceBackupV2 = {
     [monthKey: string]: Transaction[]
   }
   recurring: RecurringTemplate[]
+  savingsGoals: SavingsGoal[]
   plans: {
     [planKey: string]: number
   }
@@ -72,6 +85,7 @@ export type FinanceBackup = FinanceBackupV1 | FinanceBackupV2
 
 const BALANCES_KEY = "balances_v1"
 const RECURRING_KEY = "recurring_transactions_v1"
+const SAVINGS_GOALS_KEY = "savings_goals_v1"
 const CURRENCY_KEY = "active_currency_v1"
 const QUICK_TEMPLATES_KEY = "quick_templates_v1"
 const DEFAULT_PLAN = 25000
@@ -80,12 +94,14 @@ export function collectAllLocalStorageData(): {
   balances: AccountBalances
   transactions: FinanceBackupV2["transactions"]
   recurring: RecurringTemplate[]
+  savingsGoals: SavingsGoal[]
   plans: { [planKey: string]: number }
   settings: UserSettings
   entityCounts: {
     months: number
     totalTransactions: number
     recurring: number
+    savingsGoals: number
   }
 } {
   if (typeof window === "undefined") {
@@ -93,9 +109,10 @@ export function collectAllLocalStorageData(): {
       balances: { card: 0, cash: 0, savings: 0 },
       transactions: {},
       recurring: [],
+      savingsGoals: [],
       plans: {},
       settings: { currency: "UAH", monthlyPlan: DEFAULT_PLAN, quickTemplates: [] },
-      entityCounts: { months: 0, totalTransactions: 0, recurring: 0 },
+      entityCounts: { months: 0, totalTransactions: 0, recurring: 0, savingsGoals: 0 },
     }
   }
 
@@ -132,6 +149,12 @@ export function collectAllLocalStorageData(): {
     ? JSON.parse(recurringRaw)
     : []
 
+  // Collect savings goals
+  const savingsGoalsRaw = window.localStorage.getItem(SAVINGS_GOALS_KEY)
+  const savingsGoals: SavingsGoal[] = savingsGoalsRaw
+    ? JSON.parse(savingsGoalsRaw)
+    : []
+
   // Collect settings
   const currencyRaw = window.localStorage.getItem(CURRENCY_KEY)
   const currency: CurrencyCode =
@@ -161,6 +184,7 @@ export function collectAllLocalStorageData(): {
     balances,
     transactions,
     recurring,
+    savingsGoals,
     plans,
     settings: {
       currency,
@@ -171,6 +195,7 @@ export function collectAllLocalStorageData(): {
       months: monthCount,
       totalTransactions,
       recurring: recurring.length,
+      savingsGoals: savingsGoals.length,
     },
   }
 }
@@ -189,6 +214,7 @@ export function exportAllData(): void {
     accounts: collected.balances,
     transactions: collected.transactions,
     recurring: collected.recurring,
+    savingsGoals: collected.savingsGoals,
     plans: collected.plans,
     settings: collected.settings,
   }
@@ -231,6 +257,7 @@ function migrateV1ToV2(backup: FinanceBackupV1): FinanceBackupV2 {
     accounts: balances,
     transactions: backup.data,
     recurring: [],
+    savingsGoals: [],
     plans: backup.plans || {},
     settings: {
       currency,
@@ -391,7 +418,7 @@ function importBackupV2(
   const keysToRemove: string[] = []
   for (let i = 0; i < window.localStorage.length; i++) {
     const k = window.localStorage.key(i)
-    if (k && (k.startsWith("finance_") || k.startsWith("plan_") || k === BALANCES_KEY || k === RECURRING_KEY || k === CURRENCY_KEY || k === QUICK_TEMPLATES_KEY)) {
+    if (k && (k.startsWith("finance_") || k.startsWith("plan_") || k === BALANCES_KEY || k === RECURRING_KEY || k === SAVINGS_GOALS_KEY || k === CURRENCY_KEY || k === QUICK_TEMPLATES_KEY)) {
       keysToRemove.push(k)
     }
   }
@@ -408,6 +435,11 @@ function importBackupV2(
   // Restore recurring templates
   if (backup.recurring.length > 0) {
     window.localStorage.setItem(RECURRING_KEY, JSON.stringify(backup.recurring))
+  }
+
+  // Restore savings goals
+  if (backup.savingsGoals && backup.savingsGoals.length > 0) {
+    window.localStorage.setItem(SAVINGS_GOALS_KEY, JSON.stringify(backup.savingsGoals))
   }
 
   // Restore settings

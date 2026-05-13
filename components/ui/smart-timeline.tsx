@@ -65,11 +65,16 @@ export function SmartTimeline({ transactions, currency, onDelete, onEdit, classN
   const { groups, totalCount } = useMemo(() => {
     const groupMap = new Map<string, Transaction[]>()
     
-    // Sort by date descending
+    // Sort by date descending (parse YYYY-MM-DD manually to avoid timezone issues)
     const sorted = [...transactions].sort((a, b) => {
-      const dateA = new Date(a.date)
-      const dateB = new Date(b.date)
-      return dateB.getTime() - dateA.getTime()
+      const [ay, am, ad] = a.date.split('-').map(Number)
+      const [by, bm, bd] = b.date.split('-').map(Number)
+      const dateA = new Date(ay, am - 1, ad).getTime()
+      const dateB = new Date(by, bm - 1, bd).getTime()
+      
+      // If same date, sort by ID descending (newer first)
+      if (dateA === dateB) return b.id - a.id
+      return dateB - dateA
     })
     
     sorted.forEach(tx => {
@@ -208,7 +213,7 @@ export function SmartTimeline({ transactions, currency, onDelete, onEdit, classN
 
                     {/* Edit/Delete Buttons */}
                     {(onDelete || onEdit) && (
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex gap-1">
                         {onEdit && (
                           <button
                             type="button"
@@ -216,7 +221,7 @@ export function SmartTimeline({ transactions, currency, onDelete, onEdit, classN
                               onEdit(t)
                               triggerHaptic('light')
                             }}
-                            className="shrink-0 rounded-lg p-1.5 text-slate-600 hover:bg-slate-800/40 hover:text-blue-400"
+                            className="shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-slate-800/40 hover:text-blue-400"
                             aria-label={`Edit ${t.name || t.category}`}
                           >
                             <Pencil className="h-3.5 w-3.5" />
@@ -229,7 +234,7 @@ export function SmartTimeline({ transactions, currency, onDelete, onEdit, classN
                               onDelete(t.id)
                               triggerHaptic('medium')
                             }}
-                            className="shrink-0 rounded-lg p-1.5 text-slate-600 hover:bg-slate-800/40 hover:text-rose-400"
+                            className="shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-slate-800/40 hover:text-rose-400"
                             aria-label={`Delete ${t.name || t.category}`}
                           >
                             <Trash2 className="h-3.5 w-3.5" />

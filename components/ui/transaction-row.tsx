@@ -127,7 +127,7 @@ export function TransactionRow({
                 onEdit(transaction)
               }}
               aria-label={`Edit ${transaction.category} transaction`}
-              className="shrink-0 rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-800/40 hover:text-slate-300 min-w-[36px] min-h-[36px] flex items-center justify-center"
+              className="shrink-0 rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-800/40 hover:text-slate-200 min-w-[36px] min-h-[36px] flex items-center justify-center"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
             </button>
@@ -141,7 +141,7 @@ export function TransactionRow({
                 onDelete(transaction.id)
               }}
               aria-label={`Delete ${transaction.category} transaction`}
-              className="shrink-0 rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-800/40 hover:text-rose-400 min-w-[36px] min-h-[36px] flex items-center justify-center"
+              className="shrink-0 rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-800/40 hover:text-rose-400 min-w-[36px] min-h-[36px] flex items-center justify-center"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
             </button>

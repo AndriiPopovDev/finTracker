@@ -182,7 +182,7 @@ export function TransactionList({ transactions, periodLabel, onDelete, onEdit, c
                   type="button"
                   onClick={() => onEdit(t)}
                   aria-label={`Edit ${t.category} transaction`}
-                  className="shrink-0 rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-800/40 hover:text-slate-300 active:scale-95 min-w-[36px] min-h-[36px] flex items-center justify-center"
+                  className="shrink-0 rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-800/40 hover:text-slate-200 active:scale-95 min-w-[36px] min-h-[36px] flex items-center justify-center"
                 >
                   <Pencil className="h-4 w-4" aria-hidden="true" />
                 </button>
@@ -191,7 +191,7 @@ export function TransactionList({ transactions, periodLabel, onDelete, onEdit, c
                   type="button"
                   onClick={() => onDelete(t.id)}
                   aria-label={`Delete ${t.category} transaction`}
-                  className="shrink-0 rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-800/40 hover:text-rose-400 active:scale-95 min-w-[36px] min-h-[36px] flex items-center justify-center"
+                  className="shrink-0 rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-800/40 hover:text-rose-400 active:scale-95 min-w-[36px] min-h-[36px] flex items-center justify-center"
                 >
                   <Trash2 className="h-4 w-4" aria-hidden="true" />
                 </button>

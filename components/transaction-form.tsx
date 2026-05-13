@@ -499,6 +499,19 @@ export function TransactionForm({
         </label>
       </div>
 
+      {/* Name Input (for subscriptions/transactions) */}
+      {!isTransfer && (
+        <div className="relative">
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Name (e.g. YouTube, Netflix)"
+            className="w-full rounded-xl border border-slate-800/50 bg-slate-900/50 px-4 py-2.5 text-sm text-white placeholder:text-slate-600 outline-none transition-colors focus:border-purple-500/50"
+          />
+        </div>
+      )}
+
       {/* Category Chips - Horizontal Scrollable */}
       {!isTransfer && (
         <div className="relative -mx-3 px-3">
